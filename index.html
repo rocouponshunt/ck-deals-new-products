@@ -756,10 +756,16 @@ function getImages(deal){
   return idx.filter(i=>!hidden.includes(i)&&urls[i]).map(i=>fixImgUrl(urls[i]));
 }
 function viewingCount(id){let h=0;for(let i=0;i<(id||'').length;i++)h=(h*31+id.charCodeAt(i))&0xfffffff;return 12+(h%180)+Math.floor(Math.random()*6);}
-function getTimeLeft(timerHours,withSecs){
-  const h=timerHours||GLOBAL_TIMER||12;
-  const now=new Date(),ds=new Date(now);ds.setHours(0,0,0,0);
-  const msLeft=(h*3600000)-((now-ds)%(h*3600000));
+function hashStr(s){let h=0;s=String(s||'x');for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0;}return Math.abs(h)||1;}
+// Per-deal countdown: distinct duration + phase seeded by the deal id, so every
+// deal shows a different timer. It loops forever (auto-rotates when it hits 0) —
+// purely cosmetic urgency; a deal only disappears when removed from the sheet.
+function getTimeLeft(deal,withSecs){
+  const seed=hashStr(deal&&(deal.id||deal.product_name));
+  const periodH=(deal&&deal.timer_hours>0)?deal.timer_hours:(3+(seed%12));  // 3–14h if not set in sheet
+  const periodMs=periodH*3600000;
+  const phase=(seed*997)%periodMs;                        // stable per-deal offset
+  const msLeft=periodMs-((Date.now()+phase)%periodMs);    // counts down, then rolls over
   const hL=Math.floor(msLeft/3600000),mL=Math.floor((msLeft%3600000)/60000),sL=Math.floor((msLeft%60000)/1000);
   return withSecs?`${String(hL).padStart(2,'0')}:${String(mL).padStart(2,'0')}:${String(sL).padStart(2,'0')}`:`${hL}h ${mL}m`;
 }
@@ -1168,7 +1174,7 @@ function makeCard(deal,small){
 
   // Timer — uses cardTimerIds so it survives filter/sort re-renders
   const timerEl=card.querySelector('.card-timer-text');
-  const updTimer=()=>{if(timerEl&&document.contains(timerEl))timerEl.textContent=getTimeLeft(deal.timer_hours,true);};
+  const updTimer=()=>{if(timerEl&&document.contains(timerEl))timerEl.textContent=getTimeLeft(deal,true);};
   updTimer();cardTimerIds.push(setInterval(updTimer,1000));
 
   card.onclick=()=>showDetail(deal.id);
@@ -1473,7 +1479,7 @@ function renderDetail(deal){
   };
 
   // Timer
-  const updTimer=()=>{const el=document.getElementById('detail-timer-val');if(el)el.textContent=getTimeLeft(deal.timer_hours,true);else clearInterval(dtInt);};
+  const updTimer=()=>{const el=document.getElementById('detail-timer-val');if(el)el.textContent=getTimeLeft(deal,true);else clearInterval(dtInt);};
   updTimer();const dtInt=setInterval(updTimer,1000);allIntervals.push(dtInt);
 
   // Similar deals
@@ -1631,17 +1637,22 @@ function renderTrending(){
     }
     tryLoad(url);
   }
-  // Lazy loading: only load an image when its card nears the viewport.
-  // This is the key mobile fix — instead of firing every product image at
-  // once (which chokes phone connections), we load them just-in-time.
+  // Paint the image the reliable way (CSS background), then verify() only as an
+  // error-retry safety net. Painting directly is what makes it work on mobile —
+  // we no longer gate the first paint on a JS Image().onload.
+  function paint(el){
+    const u=el.dataset.bg;
+    if(u && !el.style.backgroundImage) el.style.backgroundImage=`url("${u.replace(/"/g,'%22')}")`;
+    verify(el);
+  }
   const lazyIO = ('IntersectionObserver' in window)
     ? new IntersectionObserver((entries,obs)=>{
-        entries.forEach(e=>{ if(e.isIntersecting){ obs.unobserve(e.target); verify(e.target); } });
-      }, {rootMargin:'500px 0px'})
+        entries.forEach(e=>{ if(e.isIntersecting){ obs.unobserve(e.target); paint(e.target); } });
+      }, {rootMargin:'800px 0px'})
     : null;
   function observeImg(el){
     if(el.dataset.io) return; el.dataset.io='1';
-    if(lazyIO) lazyIO.observe(el); else verify(el);   // no IO support → load immediately
+    if(lazyIO) lazyIO.observe(el); else paint(el);   // no IO support → load immediately
   }
   function scanAll(root){
     (root&&root.querySelectorAll?root:document).querySelectorAll('.card-img-bg,.gallery-slide-bg').forEach(observeImg);
