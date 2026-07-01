@@ -142,6 +142,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
   background-color:#fff;
 }
 .card-img{display:none}
+.card-img-el,.gallery-img-el{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;background:#fff;pointer-events:none;-webkit-user-drag:none}
+.trending-img-el{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;background:#fff}
+.img-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:40px;color:#c8c8d4;background:#fff}
 .card-img-placeholder{
   position:absolute;
   top:0;left:0;
@@ -341,7 +344,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
   background-color:#fff;
   pointer-events:none;
 }
-.gallery-slide img{display:none}
+.gallery-slide img:not(.gallery-img-el){display:none}
 /* Dot indicators */
 .gallery-dots{display:flex;justify-content:center;gap:5px;margin-top:10px}
 .gallery-dot{width:7px;height:7px;border-radius:50%;background:var(--border2);transition:background .2s,transform .2s;cursor:pointer}
@@ -755,6 +758,32 @@ function getImages(deal){
   const idx=order.length>0?order:urls.map((_,i)=>i);
   return idx.filter(i=>!hidden.includes(i)&&urls[i]).map(i=>fixImgUrl(urls[i]));
 }
+// Request a mobile-friendly sized variant so phones don't blow past their
+// decoded-image memory cap (the cause of blank images on the app).
+function resizedUrl(u, px){
+  if(!u) return u;
+  u=String(u);
+  const a=u.match(/^(https?:\/\/[^/]*media-amazon\.com\/images\/I\/)([^.\/?#]+)/i);
+  if(a) return a[1]+a[2]+'._SX'+px+'_.jpg';                 // Amazon
+  const f=u.match(/^(https?:\/\/[^/]*flixcart\.com\/image\/)\d+\/\d+\/(.*)$/i);
+  if(f) return f[1]+px+'/'+px+'/'+f[2];                     // Flipkart / Shopsy
+  return u;                                                 // others: unchanged
+}
+// <img> tag with lazy loading + resized src; falls back to the original
+// full-size URL, then to a placeholder, if the resized/first one fails.
+function imgTag(url, px, cls){
+  const full=(url||'').replace(/"/g,'%22');
+  const small=resizedUrl(url,px).replace(/"/g,'%22');
+  return `<img class="${cls}" loading="lazy" decoding="async" draggable="false" src="${small}" data-full="${full}" onerror="imgFallback(this)" alt="">`;
+}
+function imgFallback(img){
+  if(!img.dataset.triedFull && img.dataset.full && img.dataset.full!==img.src){
+    img.dataset.triedFull='1'; img.src=img.dataset.full; return;   // retry original size
+  }
+  img.style.display='none';
+  const p=img.parentElement;
+  if(p && !p.querySelector('.img-ph')){ const d=document.createElement('div'); d.className='img-ph'; d.textContent='🛍'; p.appendChild(d); }
+}
 function viewingCount(id){let h=0;for(let i=0;i<(id||'').length;i++)h=(h*31+id.charCodeAt(i))&0xfffffff;return 12+(h%180)+Math.floor(Math.random()*6);}
 function hashStr(s){let h=0;s=String(s||'x');for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0;}return Math.abs(h)||1;}
 // Per-deal countdown: distinct duration + phase seeded by the deal id, so every
@@ -1124,8 +1153,8 @@ function makeCard(deal,small){
   // Build swipeable image slider — multiple slides, one visible at a time
   let slidesHtml='';
   if(imgs.length>0){
-    // Lazy background-image via data-bg (loaded when the card nears the viewport)
-    slidesHtml=imgs.map(url=>`<div class="card-img-slide"><div class="card-img-bg" data-bg="${url.replace(/"/g,"%22")}"></div></div>`).join('');
+    // Real <img> elements (lazy + resized) — reliable on mobile, memory-managed
+    slidesHtml=imgs.map(url=>`<div class="card-img-slide">${imgTag(url,400,'card-img-el')}</div>`).join('');
   } else {
     slidesHtml='<div class="card-img-slide"><div class="card-img-placeholder">🛍</div></div>';
   }
@@ -1198,7 +1227,7 @@ function showSuggestions(q){
   const matches=ALL_DEALS.filter(d=>(d.product_name||'').toLowerCase().includes(ql)||(d.category||'').toLowerCase().includes(ql)).sort((a,b)=>(a.deal_order||999)-(b.deal_order||999)).slice(0,3);
   const el=document.getElementById('search-suggestions');
   if(!matches.length){el.style.display='none';return;}
-  el.innerHTML=matches.map(d=>{const imgs=getImages(d);return`<div class="suggestion-item" onclick="showDetail('${d.id}')"><div class="sug-img-wrap">${imgs[0]?`<img class="sug-img" src="${imgs[0]}" onerror="this.style.display='none'">`:'🛍'}</div><div class="sug-info"><div class="sug-name">${d.product_name||''}</div><div class="sug-price">${d.report_storename} · ₹${fmt(Math.round(d.final_deal_price))}</div></div><span class="sug-badge">${Math.round(d.discount_percent||0)}% OFF</span></div>`;}).join('');
+  el.innerHTML=matches.map(d=>{const imgs=getImages(d);return`<div class="suggestion-item" onclick="showDetail('${d.id}')"><div class="sug-img-wrap">${imgs[0]?`<img class="sug-img" src="${resizedUrl(imgs[0],80)}" onerror="this.style.display='none'">`:'🛍'}</div><div class="sug-info"><div class="sug-name">${d.product_name||''}</div><div class="sug-price">${d.report_storename} · ₹${fmt(Math.round(d.final_deal_price))}</div></div><span class="sug-badge">${Math.round(d.discount_percent||0)}% OFF</span></div>`;}).join('');
   el.style.display='block';
 }
 document.getElementById('sort-select').onchange=function(){activeSort=this.value;renderDeals();};
@@ -1255,7 +1284,7 @@ function renderDetail(deal){
   let gIdx=0,gStartX=0,gDragging=false;
   window.gIdx=0; // global so arrow onclick strings can access it
   const slidesHtml=imgs.length>0
-    ?imgs.map(url=>`<div class="gallery-slide"><div class="gallery-slide-bg" data-bg="${url.replace(/"/g,"%22")}"></div></div>`).join('')
+    ?imgs.map(url=>`<div class="gallery-slide">${imgTag(url,700,'gallery-img-el')}</div>`).join('')
     :'<div class="gallery-slide"><div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:60px">🛍</div></div>';
   const dotsHtml=imgs.length>1?imgs.map((_,i)=>`<div class="gallery-dot${i===0?' active':''}" onclick="gGoTo(${i})"></div>`).join(''):'';
   // Arrows use window.gIdx so they always read current value
@@ -1524,7 +1553,7 @@ function renderTrending(){
     card.className='trending-card';
     card.innerHTML=`
       <div class="trending-img">
-        <div class="trending-img-bg" style="background-image:url('${(imgs[0]||'').replace(/'/g,'%27')}')"></div>
+        ${imgs[0]?imgTag(imgs[0],240,'trending-img-el'):'<div class="img-ph">🛍</div>'}
         ${disc>0?`<div class="trending-disc">${disc}% OFF</div>`:''}
       </div>
       <div class="trending-info">
