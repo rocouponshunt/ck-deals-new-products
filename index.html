@@ -630,6 +630,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT_wje65nf4faYFkKNLuP4w1Sj_lRhpa6LApBMsxc8rr6_P4K6-8RJX9ruscClNzXnveLTNeWJyDhpH/pub?output=csv';
 const AUTO_REFRESH_MIN = 10;   // re-pull the sheet every N minutes (0 = off)
 
+/* ── AFFILIATE TRACKING — one fixed template for every deal ──────────
+   Placeholders (case-insensitive) filled in per-deal at click time:
+     {storeid}      → the row's storeid column (path segment)
+     {userid}       → captured from the landing URL ?userId=... ; if absent → "null"
+     {product_url}  → the row's product_url (auto URL-encoded)
+   ─────────────────────────────────────────────────────────────────── */
+const TRACKING_URL_TEMPLATE = 'https://tracking.cashkaro.com/visitretailer/{storeid}?id={userid}&dl={product_url}';
+
 let ALL_DEALS = [], GLOBAL_TIMER = 12, IMAGE_ROTATION_MS = 2000, CATEGORY_ORDER = [];
 let CTA_LABEL = 'View Deal', SIMILAR_DEALS_LABEL = 'Similar Deals', BANNER_IMAGE_URL = '';
 
@@ -644,13 +652,15 @@ const CAT_ICONS = {
   'Services':'⚙️','Departmental':'🏪','Miscellaneous':'🎁'
 };
 
-// Build tracking URL — use server-resolved deal.tracking_url as base,
-// replace {userid} and {product_url} client-side only
+// Build tracking URL from the single global template.
+// A per-row `tracking_url` (if ever filled) overrides the global template.
 function buildTrackingUrl(deal, store) {
-  // Prefer server-resolved tracking_url (has {store_id} already resolved)
-  const base = deal.tracking_url || (store.linkurl || '#');
+  let base = (deal.tracking_url && deal.tracking_url.trim())
+    || (TRACKING_URL_TEMPLATE && !TRACKING_URL_TEMPLATE.startsWith('PASTE_') ? TRACKING_URL_TEMPLATE : '')
+    || deal.product_url || '#';
   return base
-    .replace(/\{userid\}/gi, ACTIVE_USER_ID)
+    .replace(/\{userid\}/gi,      ACTIVE_USER_ID || 'null')
+    .replace(/\{store_?id\}/gi,   deal.store_id || '')
     .replace(/\{product_url\}/gi, encodeURIComponent(deal.product_url || ''));
 }
 
