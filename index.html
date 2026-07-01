@@ -630,6 +630,20 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT_wje65nf4faYFkKNLuP4w1Sj_lRhpa6LApBMsxc8rr6_P4K6-8RJX9ruscClNzXnveLTNeWJyDhpH/pub?output=csv';
 const AUTO_REFRESH_MIN = 10;   // re-pull the sheet every N minutes (0 = off)
 
+/* ── STORE-LEVEL CONTENT (Rewards Info + T&Cs, per retailer) ─────────
+   Make a tab named "Store-Data" in the SAME sheet with these columns:
+       storeid | store_name | rewards_info | tnc | tracking_speed | confirmation_days
+   • storeid      → matches the storeid on each deal (primary key)
+   • store_name   → optional alternate match (e.g. "Amazon") + display
+   • rewards_info → text/HTML for the Rewards/Cashback Info tab
+   • tnc          → text/HTML for the T&Cs tab
+   • tracking_speed / confirmation_days → the two info chips
+   One row per store. Publish that tab to web as CSV and paste its link below.
+   Leave blank for now — deals still work; those tabs just show defaults.
+   ─────────────────────────────────────────────────────────────────── */
+const SHEET_STORE_DATA_CSV_URL = 'PASTE_YOUR_STORE_DATA_TAB_CSV_URL_HERE';
+let STORE_DATA = {};   // keyed by storeid AND by lowercased store_name
+
 /* ── AFFILIATE TRACKING — one fixed template for every deal ──────────
    Placeholders (case-insensitive) filled in per-deal at click time:
      {storeid}      → the row's storeid column (path segment)
@@ -885,6 +899,42 @@ async function fetchDeals(){
 // Build the category order from whatever the sheet contains, keeping a sensible priority
 CATEGORY_ORDER = [];
 
+// ── Fetch the Store-Data tab → map keyed by storeid and by store_name ──
+async function fetchStoreData(){
+  if(!SHEET_STORE_DATA_CSV_URL || SHEET_STORE_DATA_CSV_URL.startsWith('PASTE_')) return; // optional
+  try{
+    const bust=(SHEET_STORE_DATA_CSV_URL.includes('?')?'&':'?')+'cb='+Date.now();
+    const res=await fetch(SHEET_STORE_DATA_CSV_URL+bust,{cache:'no-store'});
+    const rows=parseCSV(await res.text());
+    const map={};
+    rows.forEach(r=>{
+      const sid=String(r.storeid||'').trim();
+      const sname=String(r.store_name||'').trim().toLowerCase();
+      if(sid) map[sid]=r;
+      if(sname) map[sname]=r;
+    });
+    STORE_DATA=map;
+  }catch(e){ console.warn('Store-Data tab not loaded',e); }
+}
+
+// Find the Store-Data row for a deal: match by storeid first, then store name
+function storeDataFor(deal){
+  const byId = deal.store_id ? STORE_DATA[String(deal.store_id).trim()] : null;
+  if(byId) return byId;
+  const nm = (deal.seller||deal.report_storename||'').trim().toLowerCase();
+  return STORE_DATA[nm] || {};
+}
+
+// Strip <script> from any sheet-provided HTML before injecting
+const safeHtml = s => String(s||'').replace(/<script[^>]*>[\s\S]*?<\/script>/gi,'');
+
+// Show app T&Cs on mobile, desktop T&Cs on desktop (fall back to whichever exists)
+const IS_MOBILE = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth<=768;
+function pickTnc(SD){
+  const app=SD.tnc_app||'', desk=SD.tnc_desktop||'', legacy=SD.tnc||'';
+  return safeHtml((IS_MOBILE ? (app||desk) : (desk||app)) || legacy);
+}
+
 // ── Sidebar ──────────────────────────────────────────────────────
 function buildSidebar(){
   const allCats=[...new Set(ALL_DEALS.map(d=>d.category).filter(Boolean))];
@@ -974,7 +1024,7 @@ function makeCard(deal,small){
   card.className='deal-card'+(deal.availability===false?' oos':'');
   if(small)card.style.fontSize='12px';
   const imgs=getImages(deal);
-  const isRewards=(deal.store_type||deal.ck_admin_stores?.store_type)==='Rewards';
+  const isRewards=(storeDataFor(deal).store_type||deal.store_type||deal.ck_admin_stores?.store_type||'').toLowerCase()==='rewards';
   const vc=viewingCount(deal.id);
   const finalPrice=Math.round(deal.final_deal_price||0);
   const mrp=Math.round(deal.mrp||0);
@@ -1121,8 +1171,9 @@ function renderDetail(deal){
   allIntervals.forEach(clearInterval);allIntervals=[];
   const imgs=getImages(deal);
   const store=deal.ck_admin_stores||deal;
+  const SD=storeDataFor(deal);
   const rates=parseArr(deal.retailer_rates);
-  const isRewards=store.store_type==='Rewards';
+  const isRewards=(SD.store_type||store.store_type||'').toLowerCase()==='rewards';
   const vc=viewingCount(deal.id);
   const groupid=store.groupid||deal.groupid||'A';
   const isB1=groupid==='B1';
@@ -1218,11 +1269,11 @@ function renderDetail(deal){
   let ratesHtml='';
   if(rates.length)ratesHtml=`<div style="margin-bottom:8px;font-size:12px;color:var(--text3);font-weight:600">Multiple rates:</div><table class="rates-table"><thead><tr><th>User type</th><th>Cashback</th></tr></thead><tbody>${rates.map(r=>`<tr><td>${r.rate_label}</td><td>${r.cashback}${r.cashback_type==='percent'?'%':'₹'}</td></tr>`).join('')}</tbody></table>`;
 
-  const tc=(store.cashback_tc||'').replace(/<script[^>]*>[\s\S]*?<\/script>/gi,'');
+  const tc=pickTnc(SD);
   const disc=wNew.discPct;
-  const trackingSpeed=store.tracking_speed||'—';
-  const confirmDays=store.expected_confirmation_days||'—';
-  const storeType=store.store_type||'Cashback';
+  const trackingSpeed=SD.tracking_speed || store.tracking_speed || '—';
+  const confirmDays=SD.confirmation_days || store.expected_confirmation_days || '—';
+  const storeType=SD.store_type||store.store_type||'Cashback';
   const cbWord=isRewards?'Rewards':'Cashback';
   const finalRounded=Math.round(wNew.final);
   const mrpRounded=Math.round(deal.mrp||0);
@@ -1232,6 +1283,29 @@ function renderDetail(deal){
   const trackUnit=String(trackingSpeed).replace(/\d+/,'').trim()||'';
   const rawDesc=deal.description||'';
   const cleanDesc=rawDesc.replace(/₹\s*[\d,]+(\.\d+)?/g,()=>`₹${fmt(finalRounded)}`).replace(/\b\d+(\.\d+)?%\s*off\b/gi,`${disc}% off`);
+  // About tab: your description wins; else a Content-tab template; else auto-generated.
+  const _brand=(deal.brand||'').trim();
+  const _brandNice=(_brand && !['generic','fill'].includes(_brand.toLowerCase())) ? _brand : '';
+  const interp = t => String(t)
+    .replace(/\{product_name\}/gi, deal.product_name||'')
+    .replace(/\{brand\}/gi, _brandNice)
+    .replace(/\{category\}/gi, deal.category||'')
+    .replace(/\{mrp\}/gi, fmt(mrpRounded))
+    .replace(/\{final\}/gi, fmt(finalRounded))
+    .replace(/\{discount\}/gi, disc)
+    .replace(/\{coupon_code\}/gi, deal.coupon_code||'')
+    .replace(/\{cashback_word\}/gi, cbWord)
+    .replace(/\{cashback\}/gi, cb>0?cbDisplay:'');
+  function autoAbout(){
+    const p=[];
+    p.push(`${deal.product_name||'This product'}${_brandNice?` by ${_brandNice}`:''} is available for ₹${fmt(finalRounded)}${mrpRounded>finalRounded?`, down from ₹${fmt(mrpRounded)} (${disc}% off)`:''}.`);
+    if(deal.coupon_code) p.push(`Apply code ${deal.coupon_code} at checkout.`);
+    if(cb>0) p.push(`You also earn ${cbDisplay} CashKaro ${cbWord} on this order.`);
+    return p.join(' ');
+  }
+  const aboutHtml = cleanDesc
+    ? cleanDesc.replace(/\n/g,'<br>')
+    : (SD.about_template ? safeHtml(interp(SD.about_template)).replace(/\n/g,'<br>') : autoAbout());
   const trackingUrl=buildTrackingUrl(deal,store);
   const dealUrl=`${window.location.origin}${window.location.pathname}#deal/${deal.id}`;
   // WhatsApp message — show per-unit for multi-quantity deals
@@ -1294,7 +1368,7 @@ function renderDetail(deal){
         <button class="tab-btn" onclick="switchTab(this,'cbinfo')">${cbWord} Info</button>
         <button class="tab-btn" onclick="switchTab(this,'terms')">T&amp;Cs</button>
       </div>
-      <div class="tab-content active" id="tab-about">${cleanDesc?cleanDesc.replace(/\n/g,'<br>'):'<span style="color:var(--text3)">Description coming soon.</span>'}</div>
+      <div class="tab-content active" id="tab-about">${aboutHtml||'<span style="color:var(--text3)">Description coming soon.</span>'}</div>
       <div class="tab-content" id="tab-cbinfo">
         <div class="cb-chips">
           <div class="cb-chip green"><div class="cb-chip-label">${cbWord} tracks in</div><div class="cb-chip-val">${trackNum}</div><div class="cb-chip-unit">${trackUnit}</div></div>
@@ -1400,7 +1474,7 @@ function renderTrending(){
   showSkeletons();
   document.getElementById('listing-page').style.display='block';
   try{
-    await fetchDeals();
+    await Promise.all([fetchDeals(), fetchStoreData()]);
   }catch(e){
     console.error('Failed to load deals',e);
     const c=document.getElementById('content');
@@ -1415,7 +1489,7 @@ function renderTrending(){
   if(AUTO_REFRESH_MIN>0){
     setInterval(async()=>{
       try{
-        await fetchDeals();
+        await Promise.all([fetchDeals(), fetchStoreData()]);
         buildSidebar();populateBrandDropdown();renderTrending();
         // only re-render the grid if the user is on the listing view
         if(document.getElementById('listing-page').style.display!=='none') renderDeals();
