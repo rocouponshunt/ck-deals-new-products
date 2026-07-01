@@ -18,8 +18,8 @@
   --card-w:220px;--sidebar-w:220px;
   --shadow:0 2px 12px rgba(0,0,0,.07);--shadow-hover:0 8px 32px rgba(92,43,226,.13);
 }
-html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;overflow-x:hidden}
+html{scroll-behavior:smooth;overflow-x:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;overflow-x:hidden;max-width:100vw}
 
 /* NAV */
 #nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.96);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 20px}
@@ -47,7 +47,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 #topbar-inner{max-width:1400px;margin:0 auto;height:48px;display:flex;align-items:center;gap:12px;overflow-x:auto;scrollbar-width:none;padding:0 4px}
 #topbar-inner::-webkit-scrollbar{display:none}
 #sort-bar{background:#fff;border-bottom:1px solid var(--border);padding:0 16px}
-#sort-bar-inner{max-width:1400px;margin:0 auto;height:42px;display:flex;align-items:center;gap:10px}
+#sort-bar-inner{max-width:1400px;margin:0 auto;height:42px;display:flex;align-items:center;gap:10px;overflow-x:auto;scrollbar-width:none}
+#sort-bar-inner::-webkit-scrollbar{display:none}
 .sort-label{font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap;flex-shrink:0}
 .sort-divider{width:1px;height:18px;background:var(--border);flex-shrink:0}
 .cat-pill{flex-shrink:0;background:transparent;border:1.5px solid var(--border);color:var(--text2);padding:4px 14px;border-radius:20px;cursor:pointer;font-family:var(--body);font-size:12px;font-weight:500;transition:all .15s;white-space:nowrap}
@@ -58,7 +59,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
     color: #fff;
 }
 .filter-sep{width:1px;height:20px;background:var(--border);flex-shrink:0}
-.tb-select{background:var(--bg3);border:1.5px solid var(--border);color:var(--text2);padding:4px 10px;border-radius:8px;font-family:var(--body);font-size:12px;cursor:pointer;outline:none;flex-shrink:0}
+.tb-select{background:var(--bg3);border:1.5px solid var(--border);color:var(--text2);padding:4px 10px;border-radius:8px;font-family:var(--body);font-size:12px;cursor:pointer;outline:none;flex-shrink:0;max-width:160px;text-overflow:ellipsis}
 .tb-select:focus{border-color:var(--accent)}
 .price-filter{display:none;align-items:center;gap:5px;flex-shrink:0}
 .price-input{width:76px;background:var(--bg3);border:1.5px solid var(--border);color:var(--text);padding:4px 8px;border-radius:8px;font-family:var(--body);font-size:12px;outline:none}
@@ -1077,8 +1078,8 @@ function makeCard(deal,small){
   // Build swipeable image slider — multiple slides, one visible at a time
   let slidesHtml='';
   if(imgs.length>0){
-    // Use background-image divs — works on ALL iOS versions, zero rendering issues
-    slidesHtml=imgs.map(url=>`<div class="card-img-slide"><div class="card-img-bg" style="background-image:url('${url.replace(/'/g,"%27")}')"></div></div>`).join('');
+    // Lazy background-image via data-bg (loaded when the card nears the viewport)
+    slidesHtml=imgs.map(url=>`<div class="card-img-slide"><div class="card-img-bg" data-bg="${url.replace(/"/g,"%22")}"></div></div>`).join('');
   } else {
     slidesHtml='<div class="card-img-slide"><div class="card-img-placeholder">🛍</div></div>';
   }
@@ -1208,7 +1209,7 @@ function renderDetail(deal){
   let gIdx=0,gStartX=0,gDragging=false;
   window.gIdx=0; // global so arrow onclick strings can access it
   const slidesHtml=imgs.length>0
-    ?imgs.map(url=>`<div class="gallery-slide"><div class="gallery-slide-bg" style="background-image:url('${url.replace(/'/g,"%27")}')"></div></div>`).join('')
+    ?imgs.map(url=>`<div class="gallery-slide"><div class="gallery-slide-bg" data-bg="${url.replace(/"/g,"%22")}"></div></div>`).join('')
     :'<div class="gallery-slide"><div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:60px">🛍</div></div>';
   const dotsHtml=imgs.length>1?imgs.map((_,i)=>`<div class="gallery-dot${i===0?' active':''}" onclick="gGoTo(${i})"></div>`).join(''):'';
   // Arrows use window.gIdx so they always read current value
@@ -1466,7 +1467,7 @@ window.addEventListener('hashchange',handleHash);
 function renderTrending(){
   const el=document.getElementById('trending-scroll');
   if(!el)return;
-  const trending=[...ALL_DEALS].sort((a,b)=>(b.discount_percent||0)-(a.discount_percent||0)).slice(0,5);
+  const trending=[...ALL_DEALS].sort((a,b)=>(b.discount_percent||0)-(a.discount_percent||0)).slice(0,20);
   if(!trending.length){document.getElementById('trending-section').style.display='none';return;}
   el.innerHTML='';
   trending.forEach(deal=>{
@@ -1530,6 +1531,7 @@ function renderTrending(){
   const FIRST_RETRIES=6;    // first image is critical — retry much harder
   const RETRY_DELAY=1000;
   function extractUrl(el){
+    if(el.dataset.bg) return el.dataset.bg;
     const m=(el.style.backgroundImage||'').match(/url\(["']?(.*?)["']?\)/);
     return m?m[1]:null;
   }
@@ -1558,7 +1560,7 @@ function renderTrending(){
     let attempt=0;
     function tryLoad(u){
       const im=new Image();
-      im.onload=()=>{ if(attempt>0)setBg(el,u); };
+      im.onload=()=>{ setBg(el,u); };
       im.onerror=()=>{
         attempt++;
         if(attempt<=maxRetries){
@@ -1589,13 +1591,25 @@ function renderTrending(){
     }
     tryLoad(url);
   }
+  // Lazy loading: only load an image when its card nears the viewport.
+  // This is the key mobile fix — instead of firing every product image at
+  // once (which chokes phone connections), we load them just-in-time.
+  const lazyIO = ('IntersectionObserver' in window)
+    ? new IntersectionObserver((entries,obs)=>{
+        entries.forEach(e=>{ if(e.isIntersecting){ obs.unobserve(e.target); verify(e.target); } });
+      }, {rootMargin:'500px 0px'})
+    : null;
+  function observeImg(el){
+    if(el.dataset.io) return; el.dataset.io='1';
+    if(lazyIO) lazyIO.observe(el); else verify(el);   // no IO support → load immediately
+  }
   function scanAll(root){
-    (root&&root.querySelectorAll?root:document).querySelectorAll('.card-img-bg,.gallery-slide-bg').forEach(verify);
+    (root&&root.querySelectorAll?root:document).querySelectorAll('.card-img-bg,.gallery-slide-bg').forEach(observeImg);
   }
   new MutationObserver(muts=>{
     muts.forEach(m=>m.addedNodes.forEach(n=>{
       if(n.nodeType!==1)return;
-      if(n.matches&&n.matches('.card-img-bg,.gallery-slide-bg'))verify(n);
+      if(n.matches&&n.matches('.card-img-bg,.gallery-slide-bg'))observeImg(n);
       if(n.querySelectorAll)scanAll(n);
     }));
   }).observe(document.body,{childList:true,subtree:true});
