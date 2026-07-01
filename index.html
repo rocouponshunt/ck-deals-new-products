@@ -31,6 +31,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 #search:focus{border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(92,43,226,.08)}
 #search::placeholder{color:var(--text3)}
 #search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
+#search-bar{background:#fff;border-bottom:1px solid var(--border);padding:9px 16px}
+#search-bar #search-wrap{max-width:1400px;margin:0 auto}
 #search-suggestions{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#fff;border:1.5px solid var(--border);border-radius:13px;overflow:hidden;z-index:200;display:none;box-shadow:0 16px 40px rgba(0,0,0,.12)}
 .suggestion-item{display:flex;align-items:center;gap:10px;padding:10px 13px;cursor:pointer;transition:background .1s;border-bottom:1px solid var(--border)}
 .suggestion-item:last-child{border-bottom:none}
@@ -538,17 +540,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 <!-- LISTING PAGE -->
 <div id="listing-page" style="display:none">
 <div class="banner"><img src="https://asset22.ckassets.com/resources/image/staticpage_images/60 ott 1-1781263165.png"></div>
-  <div id="nav-wrapper" style="display:none;overflow:hidden;height:0">
-  <nav id="nav">
-    <div id="nav-inner">
-      <div id="search-wrap">
-        <span id="search-icon">🔍</span>
-        <input id="search" type="text" placeholder="Search deals, brands, categories...">
-        <div id="search-suggestions"></div>
-      </div>
-    </div>
-  </nav>
-  </div>
   <div id="topbar">
     <div id="topbar-inner" class="tab">
       <button class="cat-pill active" data-cat="all"><span class="cat-ico">✨</span>All</button>
@@ -569,6 +560,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
         <select class="tb-select" id="brand-filter-select" title="Filter by Brand">
           <option value="">All Brands</option>
         </select>
+      </div>
+    </div>
+    <div id="search-bar">
+      <div id="search-wrap">
+        <span id="search-icon">🔍</span>
+        <input id="search" type="text" placeholder="Search products by name…" autocomplete="off">
+        <div id="search-suggestions"></div>
       </div>
     </div>
   </div>
@@ -744,6 +742,8 @@ function parseArr(v){if(!v)return[];if(Array.isArray(v))return v;try{const p=JSO
 // load directly, exactly as before.
 const PROXY_HOSTS=['myntassets.com'];
 function fixImgUrl(u){
+  if(!u) return u;
+  u=String(u).replace(/^http:\/\//i,'https://');   // force HTTPS — http images are mixed content and blocked on mobile
   try{
     const h=new URL(u).hostname;
     if(PROXY_HOSTS.some(d=>h===d||h.endsWith('.'+d)))
@@ -762,7 +762,7 @@ function getImages(deal){
 // decoded-image memory cap (the cause of blank images on the app).
 function resizedUrl(u, px){
   if(!u) return u;
-  u=String(u);
+  u=String(u).replace(/^http:\/\//i,'https://');           // force HTTPS (mixed content is blocked on mobile)
   const a=u.match(/^(https?:\/\/[^/]*media-amazon\.com\/images\/I\/)([^.\/?#]+)/i);
   if(a) return a[1]+a[2]+'._SX'+px+'_.jpg';                 // Amazon
   const f=u.match(/^(https?:\/\/[^/]*flixcart\.com\/image\/)\d+\/\d+\/(.*)$/i);
@@ -772,15 +772,18 @@ function resizedUrl(u, px){
 // <img> tag with lazy loading + resized src; falls back to the original
 // full-size URL, then to a placeholder, if the resized/first one fails.
 function imgTag(url, px, cls){
-  const full=(url||'').replace(/"/g,'%22');
+  const full=(url||'').replace(/^http:\/\//i,'https://').replace(/"/g,'%22');
   const small=resizedUrl(url,px).replace(/"/g,'%22');
-  return `<img class="${cls}" loading="lazy" decoding="async" draggable="false" src="${small}" data-full="${full}" onerror="imgFallback(this)" alt="">`;
+  return `<img class="${cls}" loading="lazy" decoding="async" draggable="false" referrerpolicy="no-referrer" src="${small}" data-small="${small}" data-full="${full}" onerror="imgFallback(this)" alt="">`;
 }
+function bustU(u){return u+(u.includes('?')?'&':'?')+'r='+Date.now();}
 function imgFallback(img){
-  if(!img.dataset.triedFull && img.dataset.full && img.dataset.full!==img.src){
-    img.dataset.triedFull='1'; img.src=img.dataset.full; return;   // retry original size
-  }
-  img.style.display='none';
+  const s=+(img.dataset.stage||0); img.dataset.stage=s+1;
+  const small=img.dataset.small, full=img.dataset.full;
+  if(s===0){ setTimeout(()=>{img.src=bustU(small);},1400); return; }          // transient retry (slow/flaky net)
+  if(s===1 && full && full!==small){ img.src=full; return; }                  // try original full-size URL
+  if(s===2){ setTimeout(()=>{img.src=bustU(full||small);},2600); return; }    // one more retry
+  img.style.display='none';                                                   // give up → placeholder
   const p=img.parentElement;
   if(p && !p.querySelector('.img-ph')){ const d=document.createElement('div'); d.className='img-ph'; d.textContent='🛍'; p.appendChild(d); }
 }
