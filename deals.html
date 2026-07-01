@@ -627,7 +627,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
       • a product_id removed from the sheet → drops off the page
       • a changed price in the sheet → updates on the page
    ═══════════════════════════════════════════════════════════════════ */
-const SHEET_CSV_URL = 'PASTE_YOUR_PUBLISHED_CSV_URL_HERE';
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT_wje65nf4faYFkKNLuP4w1Sj_lRhpa6LApBMsxc8rr6_P4K6-8RJX9ruscClNzXnveLTNeWJyDhpH/pub?output=csv';
 const AUTO_REFRESH_MIN = 10;   // re-pull the sheet every N minutes (0 = off)
 
 let ALL_DEALS = [], GLOBAL_TIMER = 12, IMAGE_ROTATION_MS = 2000, CATEGORY_ORDER = [];
