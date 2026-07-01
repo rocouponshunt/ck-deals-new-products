@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DealsHub — Best Cashback Deals</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f5f5f7;--bg2:#fff;--bg3:#f0f0f4;--bg4:#e8e8ef;
+  --border:#e0e0ea;--border2:#d0d0de;
+  --accent:#5c2be2;--accent2:#7b52f0;--accent-light:#ede8fc;
+  --orange:#ff6b2b;--green:#00a86b;--green-bg:#e6f7f1;
+  --red:#e53e3e;--red-bg:#fef2f2;
+  --text:#111118;--text2:#555566;--text3:#9898aa;
+  --radius:16px;--font:'Sora',sans-serif;--body:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+  --card-w:220px;--sidebar-w:220px;
+  --shadow:0 2px 12px rgba(0,0,0,.07);--shadow-hover:0 8px 32px rgba(92,43,226,.13);
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;overflow-x:hidden}
+
+/* NAV */
+#nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.96);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 20px}
+#nav-inner{max-width:1400px;margin:0 auto;height:62px;display:flex;align-items:center;gap:16px}
+#logo{font-family:var(--font);font-size:21px;font-weight:800;letter-spacing:-.5px;flex-shrink:0;text-decoration:none;color:var(--text)}
+#logo span{color:var(--accent)}
+#search-wrap{flex:1;max-width:100%;position:relative}
+#search{width:100%;background:var(--bg3);border:1.5px solid var(--border);color:var(--text);padding:9px 14px 9px 40px;border-radius:11px;font-family:var(--body);font-size:14px;outline:none;transition:all .15s}
+#search:focus{border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(92,43,226,.08)}
+#search::placeholder{color:var(--text3)}
+#search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
+#search-suggestions{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#fff;border:1.5px solid var(--border);border-radius:13px;overflow:hidden;z-index:200;display:none;box-shadow:0 16px 40px rgba(0,0,0,.12)}
+.suggestion-item{display:flex;align-items:center;gap:10px;padding:10px 13px;cursor:pointer;transition:background .1s;border-bottom:1px solid var(--border)}
+.suggestion-item:last-child{border-bottom:none}
+.suggestion-item:hover{background:var(--bg3)}
+.sug-img-wrap{width:40px;height:40px;border-radius:7px;overflow:hidden;background:var(--bg3);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.sug-img{width:100%;height:100%;object-fit:contain}
+.sug-info{flex:1;min-width:0}
+.sug-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sug-price{font-size:11px;color:var(--text2);margin-top:1px}
+.sug-badge{background:var(--accent-light);color:var(--accent);font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0}
+
+/* TOP FILTER BAR */
+#topbar{background:#fff;border-bottom:1px solid var(--border);padding:0;position:sticky;top:0;z-index:90}
+#topbar-inner{max-width:1400px;margin:0 auto;height:48px;display:flex;align-items:center;gap:12px;overflow-x:auto;scrollbar-width:none;padding:0 4px}
+#topbar-inner::-webkit-scrollbar{display:none}
+#sort-bar{background:#fff;border-bottom:1px solid var(--border);padding:0 16px}
+#sort-bar-inner{max-width:1400px;margin:0 auto;height:42px;display:flex;align-items:center;gap:10px}
+.sort-label{font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap;flex-shrink:0}
+.sort-divider{width:1px;height:18px;background:var(--border);flex-shrink:0}
+.cat-pill{flex-shrink:0;background:transparent;border:1.5px solid var(--border);color:var(--text2);padding:4px 14px;border-radius:20px;cursor:pointer;font-family:var(--body);font-size:12px;font-weight:500;transition:all .15s;white-space:nowrap}
+.cat-pill:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+.cat-pill.active {
+    background: #0036da;
+    border-color: var(--accent);
+    color: #fff;
+}
+.filter-sep{width:1px;height:20px;background:var(--border);flex-shrink:0}
+.tb-select{background:var(--bg3);border:1.5px solid var(--border);color:var(--text2);padding:4px 10px;border-radius:8px;font-family:var(--body);font-size:12px;cursor:pointer;outline:none;flex-shrink:0}
+.tb-select:focus{border-color:var(--accent)}
+.price-filter{display:none;align-items:center;gap:5px;flex-shrink:0}
+.price-input{width:76px;background:var(--bg3);border:1.5px solid var(--border);color:var(--text);padding:4px 8px;border-radius:8px;font-family:var(--body);font-size:12px;outline:none}
+.price-input:focus{border-color:var(--accent)}
+.price-input::placeholder{color:var(--text3)}
+.price-label{font-size:12px;color:var(--text3)}
+
+/* BODY LAYOUT */
+#page-body{max-width:1400px;margin:0 auto;padding:24px 20px 60px;display:flex;gap:24px;align-items:flex-start}
+
+/* LEFT SIDEBAR */
+#sidebar{width:var(--sidebar-w);flex-shrink:0;position:sticky;top:90px;max-height:calc(100vh - 100px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+#sidebar::-webkit-scrollbar{width:4px}
+#sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.sidebar-section{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:var(--shadow)}
+.sidebar-title{font-family:var(--font);font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.sidebar-clear{font-size:11px;color:var(--accent);cursor:pointer;font-weight:500}
+.sidebar-search{width:100%;background:var(--bg3);border:1.5px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font-family:var(--body);font-size:12px;outline:none;margin-bottom:8px;transition:border .15s}
+.sidebar-search:focus{border-color:var(--accent)}
+.sidebar-search::placeholder{color:var(--text3)}
+.brand-list{display:flex;flex-direction:column;gap:4px;max-height:280px;overflow-y:auto;scrollbar-width:thin}
+.brand-list::-webkit-scrollbar{width:3px}
+.brand-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.brand-item{display:flex;align-items:center;gap:8px;padding:5px 4px;cursor:pointer;border-radius:7px;transition:background .1s}
+.brand-item:hover{background:var(--bg3)}
+.brand-cb{width:16px;height:16px;border:2px solid var(--border2);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;cursor:pointer}
+.brand-cb.checked{background:var(--accent);border-color:var(--accent)}
+.brand-cb.checked::after{content:'✓';color:#fff;font-size:10px;font-weight:700;line-height:1}
+.brand-name{font-size:12px;color:var(--text2);flex:1}
+.brand-count{font-size:10px;color:var(--text3);background:var(--bg3);padding:1px 6px;border-radius:10px}
+
+/* MAIN CONTENT */
+#content-area{flex:1;min-width:0}
+#results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;     display: none !important;}
+#results-count{font-size:13px;color:var(--text2)}
+#results-count strong{color:var(--text);font-weight:600}
+.deal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--card-w),1fr));gap:16px}
+
+/* DEAL CARD */
+.deal-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:transform .2s,box-shadow .2s,border-color .2s;position:relative;display:flex;flex-direction:column;box-shadow:var(--shadow)}
+.deal-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-hover);border-color:rgba(92,43,226,.2)}
+.deal-card.oos{opacity:.55}
+/* Card image — zero-height + padding-bottom square: absolute children fill correctly on all devices */
+.card-img-wrap{
+  position:relative;
+  width:100%;
+  height:0;
+  padding-bottom:100%;
+  overflow:hidden;
+  background:var(--bg3);
+}
+/* Slider is absolute — fills the padding-bottom square */
+.card-img-slider{
+  position:absolute;
+  top:0;left:0;
+  display:flex;
+  width:100%;
+  height:100%;
+  transition:transform .35s ease;
+  will-change:transform;
+}
+.card-img-slide{
+  position:relative;
+  min-width:100%;
+  width:100%;
+  height:100%;
+  flex-shrink:0;
+  background:#fff;
+}
+/* Background-image fills the slide — works on Android Chrome, iOS Safari, all versions */
+.card-img-bg{
+  position:absolute;
+  top:0;left:0;
+  width:100%;
+  height:100%;
+  background-size:contain;
+  background-repeat:no-repeat;
+  background-position:center;
+  background-color:#fff;
+}
+.card-img{display:none}
+.card-img-placeholder{
+  position:absolute;
+  top:0;left:0;
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:40px;
+  color:var(--text3);
+  background:var(--bg3);
+}
+.card-discount-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: #0036da;
+    color: #fff;
+    font-family: var(--font);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    z-index: 2;
+}
+.card-oos-overlay{position:absolute;inset:0;background:rgba(245,245,247,.8);display:flex;align-items:center;justify-content:center;font-family:var(--font);font-size:13px;font-weight:700;color:var(--text2)}
+.card-timer{display:flex;gap:4px;background:#e53e3e;border-radius:5px;padding:4px 7px;position:absolute;bottom:0;left:0}
+.card-timer-text{font-size:10px;font-weight:700;color:#fff;font-family:var(--mono)}
+.card-viewing {
+    /* background: rgba(0,0,0,.55); */
+    color: #928c8c;
+    font-size: 8px;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    backdrop-filter: blur(4px);
+    margin-top: 0;
+    float: right;
+    width: 50%;
+}
+.card-viewing-dot{width:5px;height:5px;border-radius:50%;background:#4ade80;animation:blink 1.4s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.card-body{padding:12px;flex:1;display:flex;flex-direction:column;gap:4px}
+.card-retailer {
+    font-size: 10px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: .7px;
+    font-weight: 600;
+    width: 50%;
+    float: left;
+}
+.card-name{font-family:var(--font);font-size:13px;font-weight:600;line-height:1.4;color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;flex:1}
+.card-price{font-family:var(--font);font-size:20px;font-weight:800;color:#259c0a;letter-spacing:-.5px}
+.card-mrp{text-decoration:line-through;font-size:11px;color:var(--text3)}
+.card-footer {
+    padding-top: 8px;
+    display: block;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+.card-quick-buy {
+    background: #0036da;
+    color: #fff;
+    border: none;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-family: var(--font);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s;
+    width: 85%;
+}
+.card-quick-buy:hover{background:var(--accent2)}
+.card-type-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
+.badge-cashback{background:var(--green-bg);color:var(--green)}
+.badge-rewards{background:var(--accent-light);color:var(--accent)}
+.price-drop-ribbon{position:absolute;top:0;right:0;background:#e53e3e;color:#fff;font-size:9px;font-weight:700;padding:3px 8px;border-bottom-left-radius:8px;letter-spacing:.4px;z-index:3;display:flex;align-items:center;gap:3px}
+
+/* Trending Deals carousel — mobile only */
+#trending-section{display:none;background:#fff;border-bottom:1px solid var(--border);padding:10px 0 4px}
+@media(max-width:900px){#trending-section{display:block}}
+.trending-header{padding:0 12px 8px;display:flex;align-items:center;gap:6px}
+.trending-title{font-family:var(--font);font-size:13px;font-weight:700;color:var(--text)}
+.trending-badge{background:#e53e3e;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;letter-spacing:.3px}
+.trending-scroll{display:flex;gap:10px;overflow-x:auto;padding:0 12px 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.trending-scroll::-webkit-scrollbar{display:none}
+.trending-card{flex-shrink:0;width:120px;background:#fff;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;box-shadow:var(--shadow)}
+.trending-card:active{opacity:.85}
+.trending-img{width:100%;height:0;padding-bottom:100%;position:relative;background:var(--bg3)}
+.trending-img-bg{position:absolute;top:0;left:0;width:100%;height:100%;background-size:contain;background-repeat:no-repeat;background-position:center;background-color:#fff}
+.trending-disc{position:absolute;top:5px;left:5px;background:#0036da;color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;z-index:1}
+.trending-info{padding:6px 8px}
+.trending-name{font-size:10px;font-weight:600;color:var(--text);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:3px}
+.trending-price{font-family:var(--font);font-size:13px;font-weight:800;color:#259c0a}
+
+/* Skeleton */
+.skeleton{background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.skel-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+.skel-img{width:100%;height:0;padding-bottom:100%;background:var(--bg3)}
+.skel-body{padding:12px;display:flex;flex-direction:column;gap:8px}
+.skel-line{height:10px;border-radius:4px}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text3);grid-column:1/-1}
+.empty-icon{font-size:40px;margin-bottom:12px}
+.empty-title{font-family:var(--font);font-size:16px;color:var(--text2);margin-bottom:6px}
+
+/* DETAIL PAGE */
+#detail-page{display:none;min-height:100vh;background:var(--bg)}
+#detail-nav {
+    background: rgba(255,255,255,.96);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: none;
+}
+#detail-nav-inner{max-width:1200px;margin:0 auto;height:62px;display:flex;align-items:center;gap:14px}
+#back-btn{display:inline-flex;align-items:center;gap:6px;color:var(--text2);font-size:13px;font-weight:500;cursor:pointer;border:1.5px solid var(--border);background:#fff;padding:7px 13px;border-radius:9px;transition:all .15s;font-family:var(--body)}
+#back-btn:hover{border-color:var(--accent);color:var(--accent)}
+#detail-inner{max-width:1100px;margin:0 auto;padding:28px 20px 60px}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:start}
+@media(max-width:768px){.detail-grid{grid-template-columns:1fr}}
+
+/* Floating CTA */
+#floating-cta{display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;padding:12px 16px;background:rgba(255,255,255,.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);box-shadow:0 -4px 20px rgba(0,0,0,.1)}
+#floating-cta-btn {
+    display: block;
+    width: 100%;
+    background: #0036da;
+    color: #fff;
+    border: none;
+    padding: 18px;
+    border-radius: 12px;
+    font-family: var(--font);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    transition: all .15s;
+    box-shadow: 0 4px 16px rgba(92,43,226,.3);
+}
+
+@media(max-width:900px){
+  #floating-cta{display:block}
+  #detail-inner{padding-bottom:90px}
+  .inline-cta-wrap{display:block}
+}
+
+/* Detail gallery — height:0 + padding-bottom square, absolute children */
+.gallery-main{
+  position:relative;
+  width:100%;
+  height:0;
+  padding-bottom:100%;
+  overflow:hidden;
+  background:#fff;
+  border:1.5px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  touch-action:pan-y;
+  user-select:none;
+}
+.gallery-slider{
+  position:absolute;
+  top:0;left:0;
+  display:flex;
+  width:100%;
+  height:100%;
+  transition:transform .35s ease;
+  will-change:transform;
+}
+.gallery-slide{
+  position:relative;
+  min-width:100%;
+  width:100%;
+  height:100%;
+  flex-shrink:0;
+  background:#fff;
+}
+.gallery-slide-bg{
+  position:absolute;
+  top:0;left:0;
+  width:100%;
+  height:100%;
+  background-size:contain;
+  background-repeat:no-repeat;
+  background-position:center;
+  background-color:#fff;
+  pointer-events:none;
+}
+.gallery-slide img{display:none}
+/* Dot indicators */
+.gallery-dots{display:flex;justify-content:center;gap:5px;margin-top:10px}
+.gallery-dot{width:7px;height:7px;border-radius:50%;background:var(--border2);transition:background .2s,transform .2s;cursor:pointer}
+.gallery-dot.active{background:var(--accent);transform:scale(1.2)}
+/* Swipe arrows on desktop */
+.gallery-arrow{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.9);border:1.5px solid var(--border);color:var(--text2);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;font-size:14px;transition:all .15s;box-shadow:var(--shadow)}
+.gallery-arrow:hover{border-color:var(--accent);color:var(--accent)}
+.gallery-arrow.prev{left:8px}
+.gallery-arrow.next{right:8px}
+@media(max-width:768px){.gallery-arrow{display:none}}
+
+.detail-info{display:block;flex-direction:column;gap:18px}
+.detail-retailer-row {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.detail-retailer{font-size:11px;text-transform:uppercase;letter-spacing:.9px;color:var(--text3);font-weight:600}
+.detail-name {
+    font-family: var(--font);
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 29px;
+    letter-spacing: -.4px;
+    color: var(--text);
+}
+.detail-timer {
+    display: block;
+    align-items: center;
+    gap: 6px;
+    background: #e53e3e;
+    border-radius: 8px;
+    padding: 5px 10px;
+    color: #fff;
+    clear: both;
+
+}
+.detail-timer-icon{font-size:13px}
+.detail-timer-label{font-size:12px;color:#fff;font-weight:500}
+.detail-timer-value{font-family:var(--mono);font-size:13px;font-weight:700;color:#fff}
+.detail-price-block {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    /* box-shadow: var(--shadow); */
+}
+.detail-price-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.detail-mrp{text-decoration:line-through;color:var(--text3);font-size:15px}
+.detail-price{font-family:var(--font);font-size:36px;font-weight:800;color:#259c0a;letter-spacing:-1.5px}
+.detail-discount-badge {
+    background: #0036da;
+    color: #fff;
+    padding: 4px 11px;
+    border-radius: 7px;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 700;
+}
+.wf-inline-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    padding: 10px 0 0;
+    font-size: 12px;
+    color: var(--accent);
+    user-select: none;
+    font-weight: 600;
+    border-top: 1px solid var(--border);
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+.wf-inline-toggle:hover{opacity:.8}
+.wf-inline-body{display:none;margin-top:8px;background:var(--bg3);border-radius:10px;padding:12px;font-size:12px;font-family:var(--mono)}
+.wf-inline-body.open{display:block}
+.wf-r{display:flex;justify-content:space-between;padding:3px 0;color:var(--text2)}
+.wf-r.s .wv{text-decoration:line-through;color:var(--text3)}
+.wf-r.d .wv{color:var(--green);font-weight:600}
+.wf-r.a .wv{color:var(--red)}
+.wf-hr{border:none;border-top:1.5px solid var(--border2);margin:9px 0}
+.wf-r.tot{color:var(--text);font-weight:700}
+.wf-r.tot .wv{color:var(--accent);font-size:14px}
+.wf-r.sv{color:var(--green);font-size:11px}
+.cta-btn{display:block;width:100%;    background: #f59e0b;;color:#fff;border:none;padding:14px;border-radius:12px;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;text-align:center;transition:all .15s;box-shadow:0 4px 16px rgba(92,43,226,.3);margin-bottom:10px}
+.cta-btn:hover{ transform:translateY(-1px)}
+.cta-sub {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 5px;
+	clear: both;
+    margin-bottom: 10px;
+}
+.share-btn{display:flex;align-items:center;justify-content:center;gap:6px;background:#25d366;color:#fff;border:none;padding:10px 16px;border-radius:10px;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;transition:all .15s;width:100%;margin-bottom:8px; display: none;}
+.share-btn:hover{background:#1da851;transform:translateY(-1px)}
+.share-btn svg{flex-shrink:0}
+.user-tabs{display:flex;background:var(--bg3);border:1.5px solid var(--border);border-radius:11px;overflow:hidden;margin-bottom:4px}
+.user-tab{flex:1;background:none;border:none;padding:10px 12px;cursor:pointer;font-family:var(--body);font-size:12px;font-weight:600;color:var(--text2);transition:all .15s;text-align:center;line-height:1.3}
+.user-tab.active{background:var(--accent);color:#fff}
+.tabs-wrap{background:#fff;border:1.5px solid var(--border);border-radius:13px;overflow:hidden;box-shadow:var(--shadow)}
+.tab-list{display:flex;border-bottom:1px solid var(--border)}
+.tab-btn{flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--text2);padding:12px 8px;cursor:pointer;font-family:var(--body);font-size:13px;font-weight:600;transition:all .15s;margin-bottom:-1px}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);background:var(--accent-light)}
+.tab-btn:hover:not(.active){color:var(--text);background:var(--bg3)}
+.tab-content{padding:18px;display:none;font-size:14px;line-height:1.8;color:var(--text2)}
+.tab-content.active{display:block}
+.tab-content ul{padding-left:18px}
+.tab-content li{margin-bottom:6px}
+.cb-chips{display:flex;gap:14px;justify-content:center;margin-bottom:12px}
+.cb-chip{flex:1;background:var(--accent-light);border:1.5px solid rgba(92,43,226,.15);border-radius:14px;padding:18px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;max-width:160px}
+.cb-chip-label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--accent);font-weight:700}
+.cb-chip-val{font-family:var(--font);font-size:28px;font-weight:800;color:var(--accent);line-height:1}
+.cb-chip-unit{font-size:12px;color:var(--text2);font-weight:500}
+.cb-chip.green{background:var(--green-bg);border-color:rgba(0,168,107,.15)}
+.cb-chip.green .cb-chip-label{color:var(--green)}
+.cb-chip.green .cb-chip-val{color:var(--green)}
+.rates-table{width:100%;border-collapse:collapse;font-size:13px}
+.rates-table th{text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border-bottom:1px solid var(--border);font-weight:600}
+.rates-table td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text2)}
+.similar-section{margin-top:44px}
+.similar-title{font-family:var(--font);font-size:17px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:10px}
+.similar-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+
+/* Loader */
+#loader{position:fixed;inset:0;background:#fff;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+#loader-logo{font-family:var(--font);font-size:28px;font-weight:800;letter-spacing:-1px;color:var(--text)}
+#loader-logo span{color:var(--accent)}
+.loader-bar{width:180px;height:3px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.loader-fill{height:100%;background:var(--accent);border-radius:2px;animation:loadfill 1.2s ease-out forwards}
+@keyframes loadfill{from{width:0}to{width:100%}}
+.loader-text{font-size:12px;color:var(--text3)}
+
+/* Responsive */
+@media(max-width:1100px){:root{--sidebar-w:190px;--card-w:190px}}
+@media(max-width:900px){#sidebar{display:none}:root{--card-w:180px}}
+@media(max-width:600px){
+  .deal-grid{grid-template-columns:repeat(var(--mobile-cols,2),1fr) !important}
+  :root{--card-w:100%}
+  #page-body{padding:16px 10px 50px}
+  .detail-name{font-size:20px}
+  .detail-price{font-size:28px}
+  #detail-inner{padding:16px 12px 40px}
+  .detail-grid{gap:20px}
+  .cb-chips{gap:8px}
+  .cb-chip-val{font-size:22px}
+  .card-price{font-size:20px}
+  .card-body{padding:9px}
+}
+.inline-cta-wrap a {
+    float: left;
+    width: 100%;
+    margin-right: 9px;
+}
+
+.inline-cta-wrap a + a {
+    float: left;
+    width: 10%;
+}
+.banner img {
+    width: 100%;
+    display: block;
+}
+@media screen and (min-width: 600px) and (max-width: 3568px)
+{
+.banner{ display: none;}
+}
+
+@media screen and (min-width: 320px) and (max-width: 600px)
+{
+.inline-cta-wrap a {
+    float: left;
+    width: 85%;
+    margin-right: 9px;
+    display: none;
+}
+}
+
+
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div id="loader-logo"><img src="https://asset22.ckassets.com/wp/wp-content/themes/CashKaro_WP_V1/img/cashkaro_logo_v1.svg"></div>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+  <div class="loader-text">Loading today's best deals...</div>
+</div>
+
+<!-- LISTING PAGE -->
+<div id="listing-page" style="display:none">
+<div class="banner"><img src="https://asset22.ckassets.com/resources/image/staticpage_images/60 ott 1-1781263165.png"></div>
+  <div id="nav-wrapper" style="display:none;overflow:hidden;height:0">
+  <nav id="nav">
+    <div id="nav-inner">
+      <div id="search-wrap">
+        <span id="search-icon">🔍</span>
+        <input id="search" type="text" placeholder="Search deals, brands, categories...">
+        <div id="search-suggestions"></div>
+      </div>
+    </div>
+  </nav>
+  </div>
+  <div id="topbar">
+    <div id="topbar-inner" class="tab">
+      <button class="cat-pill active" data-cat="all">All Deals</button>
+      <div class="filter-sep"></div>
+    </div>
+    <div id="sort-bar">
+      <div id="sort-bar-inner">
+        <span class="sort-label">Sort By</span>
+        <select class="tb-select" id="sort-select" title="Sort By">
+          <option value="order">Featured</option>
+          <option value="discount">Biggest Discount</option>
+          <option value="price_asc">Price: Low to High</option>
+          <option value="price_desc">Price: High to Low</option>
+          <option value="newest">Newly Added</option>
+        </select>
+        <div class="sort-divider"></div>
+        <span class="sort-label">Brand</span>
+        <select class="tb-select" id="brand-filter-select" title="Filter by Brand">
+          <option value="">All Brands</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <!-- Trending Deals Ending Soon — mobile only -->
+  <div id="trending-section">
+    <div class="trending-header">
+      <span class="trending-title">🔥 Trending Deals Ending Soon</span>
+      <span class="trending-badge">NEW</span>
+    </div>
+    <div class="trending-scroll" id="trending-scroll"></div>
+  </div>
+  <div id="page-body">
+    <div id="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">
+          Brands
+          <span class="sidebar-clear" id="clear-brands" onclick="clearBrands()" style="display:none">Clear</span>
+        </div>
+        <input class="sidebar-search" id="brand-search" placeholder="Search Brand" type="text">
+        <div class="brand-list" id="brand-list"></div>
+      </div>
+    </div>
+    <div id="content-area">
+      <div id="results-header" style="display:none"><div id="results-count"></div></div>
+      <div id="skeletons" class="deal-grid" style="margin-bottom:0px"></div>
+      <div id="content" class="deal-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL PAGE -->
+<div id="detail-page">
+  <div id="detail-nav">
+    <div id="detail-nav-inner">
+      <button id="back-btn" onclick="showListing()">← Back to deals</button>
+    </div>
+  </div>
+  <div id="floating-cta">
+    <a id="floating-cta-btn" href="#" target="_blank" rel="noopener">Shop Now &amp; Earn Cashback</a>
+  </div>
+  <div id="detail-inner">
+    <div class="detail-grid">
+      <div id="gallery" class="gallery"></div>
+      <div id="detail-info" class="detail-info"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   DATA SOURCE — GOOGLE SHEET (published as CSV)
+   ───────────────────────────────────────────────────────────────────
+   1. In Google Sheets:  File → Share → Publish to web
+      • Choose the correct sheet/tab
+      • Format: "Comma-separated values (.csv)"
+      • Click Publish, copy the link, and paste it below.
+   2. The link looks like:
+      https://docs.google.com/spreadsheets/d/e/XXXX/pub?gid=0&single=true&output=csv
+   3. Products auto-sync on every page load (cache disabled). The page also
+      re-fetches every AUTO_REFRESH_MIN minutes so an open tab stays current:
+      • a product_id removed from the sheet → drops off the page
+      • a changed price in the sheet → updates on the page
+   ═══════════════════════════════════════════════════════════════════ */
+const SHEET_CSV_URL = 'PASTE_YOUR_PUBLISHED_CSV_URL_HERE';
+const AUTO_REFRESH_MIN = 10;   // re-pull the sheet every N minutes (0 = off)
+
+let ALL_DEALS = [], GLOBAL_TIMER = 12, IMAGE_ROTATION_MS = 2000, CATEGORY_ORDER = [];
+let CTA_LABEL = 'View Deal', SIMILAR_DEALS_LABEL = 'Similar Deals', BANNER_IMAGE_URL = '';
+
+// Dynamic userid from URL param — accepts userid, userId, user_id. No fallback — null if not present.
+const urlParams = new URLSearchParams(window.location.search);
+const ACTIVE_USER_ID = urlParams.get('userid') || urlParams.get('userId') || urlParams.get('user_id') || null;
+
+const CAT_ICONS = {
+  'Electronics':'📱','Fashion':'👗','Beauty':'💄','Home and Kitchen':'🏠',
+  'Healthcare and Wellness':'💊','Food and Grocery':'🛒','Sports':'⚽',
+  'Books':'📚','Toys':'🧸','Automotive':'🚗','Travel':'✈️',
+  'Services':'⚙️','Departmental':'🏪','Miscellaneous':'🎁'
+};
+
+// Build tracking URL — use server-resolved deal.tracking_url as base,
+// replace {userid} and {product_url} client-side only
+function buildTrackingUrl(deal, store) {
+  // Prefer server-resolved tracking_url (has {store_id} already resolved)
+  const base = deal.tracking_url || (store.linkurl || '#');
+  return base
+    .replace(/\{userid\}/gi, ACTIVE_USER_ID)
+    .replace(/\{product_url\}/gi, encodeURIComponent(deal.product_url || ''));
+}
+
+// ── Funnel event logging ─────────────────────────────────────────
+// Logs two events to the Supabase edge function:
+//   dealview  — when a deal detail page opens
+//   exitclick — when the retailer CTA (inline or floating) is clicked
+// userid comes from ACTIVE_USER_ID (captured from the landing URL above).
+const LOG_EVENT_URL = '';   // set to your own logging endpoint later, or leave blank to disable
+window.logDealEvent = function (deal, eventType) {
+  try {
+    if (!deal || !LOG_EVENT_URL) return;
+    var payload = {
+      deal_id: deal.id,
+      store_id: deal.store_id || null,
+      userid: ACTIVE_USER_ID || null,
+      event_type: eventType,            // 'dealview' or 'exitclick'
+      referrer: document.referrer || null
+    };
+    // text/plain is CORS-safelisted, so the cross-origin beacon/fetch sends
+    // WITHOUT a preflight. The edge function's req.json() still parses it fine.
+    var body = JSON.stringify(payload);
+    var blob = new Blob([body], { type: 'text/plain;charset=UTF-8' });
+    if (!navigator.sendBeacon || !navigator.sendBeacon(LOG_EVENT_URL, blob)) {
+      fetch(LOG_EVENT_URL, { method: 'POST', body: body,
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, keepalive: true });
+    }
+  } catch (e) {}
+};
+// Fire exitclick on CTA clicks. Delegated so it survives detail re-renders
+// and never double-binds. window.__ckCurrentDeal is set in showDetail().
+document.addEventListener('click', function (e) {
+  var cta = e.target.closest && e.target.closest('#inline-cta-btn,#floating-cta-btn');
+  if (cta && window.__ckCurrentDeal) window.logDealEvent(window.__ckCurrentDeal, 'exitclick');
+}, true);
+
+let activeCat='all', activeSort='order';
+let selectedBrands = new Set();
+let activeBrandFilter='';
+let priceMin=null, priceMax=null, searchQuery='';
+let allIntervals = [];
+
+// ── Helpers ──────────────────────────────────────────────────────
+const fmt = n => Number(n||0).toLocaleString('en-IN');
+function parseArr(v){if(!v)return[];if(Array.isArray(v))return v;try{const p=JSON.parse(v);return Array.isArray(p)?p:[];}catch(e){return[];}}
+// Myntra CDN blocks hotlinking inside app WebViews (referer check).
+// Route only myntassets.com images through wsrv.nl (formerly images.weserv.nl),
+// which fetches them server-side with browser headers. All other retailers
+// load directly, exactly as before.
+const PROXY_HOSTS=['myntassets.com'];
+function fixImgUrl(u){
+  try{
+    const h=new URL(u).hostname;
+    if(PROXY_HOSTS.some(d=>h===d||h.endsWith('.'+d)))
+      return 'https://wsrv.nl/?url='+encodeURIComponent(u);
+  }catch(e){}
+  return u;
+}
+function getImages(deal){
+  const urls=parseArr(deal.image_urls);
+  const order=parseArr(deal.image_order);
+  const hidden=parseArr(deal.hidden_images);
+  const idx=order.length>0?order:urls.map((_,i)=>i);
+  return idx.filter(i=>!hidden.includes(i)&&urls[i]).map(i=>fixImgUrl(urls[i]));
+}
+function viewingCount(id){let h=0;for(let i=0;i<(id||'').length;i++)h=(h*31+id.charCodeAt(i))&0xfffffff;return 12+(h%180)+Math.floor(Math.random()*6);}
+function getTimeLeft(timerHours,withSecs){
+  const h=timerHours||GLOBAL_TIMER||12;
+  const now=new Date(),ds=new Date(now);ds.setHours(0,0,0,0);
+  const msLeft=(h*3600000)-((now-ds)%(h*3600000));
+  const hL=Math.floor(msLeft/3600000),mL=Math.floor((msLeft%3600000)/60000),sL=Math.floor((msLeft%60000)/1000);
+  return withSecs?`${String(hL).padStart(2,'0')}:${String(mL).padStart(2,'0')}:${String(sL).padStart(2,'0')}`:`${hL}h ${mL}m`;
+}
+
+// ── CSV parser — handles quoted fields, commas & newlines inside quotes ──
+function parseCSV(text){
+  // strip BOM
+  text = text.replace(/^\uFEFF/, '');
+  const rows=[]; let row=[], field='', inQ=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(inQ){
+      if(c==='"'){ if(text[i+1]==='"'){field+='"';i++;} else inQ=false; }
+      else field+=c;
+    } else {
+      if(c==='"') inQ=true;
+      else if(c===','){ row.push(field); field=''; }
+      else if(c==='\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+      else if(c==='\r'){ /* ignore, handled by \n */ }
+      else field+=c;
+    }
+  }
+  if(field.length||row.length){ row.push(field); rows.push(row); }
+  if(!rows.length) return [];
+  const headers=rows[0].map(h=>h.trim());
+  return rows.slice(1)
+    .filter(r=>r.some(v=>String(v).trim()!==''))          // drop blank lines
+    .map(r=>{const o={};headers.forEach((h,i)=>o[h]=(r[i]!==undefined?String(r[i]).trim():''));return o;});
+}
+
+// ── Small coercers ──────────────────────────────────────────────
+const num  = v => { const n=parseFloat(String(v).replace(/[₹,\s]/g,'')); return isNaN(n)?0:n; };
+const bool = v => ['true','yes','1','y'].includes(String(v).trim().toLowerCase());
+const rtype= v => String(v).trim().toLowerCase().startsWith('per') ? 'percent' : 'flat';
+
+// ── Map ONE sheet row → the internal "deal" shape the page renders ──
+function mapRow(r){
+  const id = (r.product_id||'').trim();
+  const images = [r.image_URL1, r.image_URL2, r.image_URL3].filter(u=>u && /^https?:\/\//i.test(u));
+  const mrp        = num(r.latest_mrp);
+  const discounted = num(r.latest_discounted_price);
+  const afterCb    = num(r.price_after_cb) || discounted;   // FINAL price shown on card
+  const discPct    = mrp>0 ? Math.max(0, Math.round((mrp-afterCb)/mrp*100)) : 0;
+
+  return {
+    id,
+    product_name : r.product_name || '',
+    // brand is the meaningful filter on an Amazon-only feed → use it as the "store" label
+    report_storename : r.brand || r.seller || '',
+    seller       : r.seller || '',
+    brand        : r.brand || '',
+
+    mrp,
+    discounted_price : discounted,
+    final_deal_price : afterCb,
+    discount_percent : discPct,
+
+    image_urls   : images,
+    image_order  : [],
+    hidden_images: [],
+    retailer_rates: [],
+
+    category     : r.category_group || 'Other',
+    deal_order   : num(r.rank) || 999,
+    availability : bool(r.stock_check) && /in\s*stock/i.test(r.latest_availability||'In Stock'),
+    quantity     : num(r.quantity) || 1,
+    price_dropped: bool(r.price_dropped),
+    timer_hours  : num(r.timer_hours) || 0,
+    description  : r.description || '',
+
+    // ── Cashback (single-rate model, groupid 'A') ──
+    groupid      : 'A',
+    cashback     : num(r.cb_rate),
+    cashback_type: r.cb_rate_type ? rtype(r.cb_rate_type) : 'percent',
+    store_type   : r.store_type || 'Cashback',
+
+    // ── Coupon ──
+    coupon_code    : (r.coupon_code||'').trim(),
+    coupon_discount: num(r.coupon_discount),
+    coupon_type    : r.coupon_type ? rtype(r.coupon_type) : 'flat',
+
+    // ── Prepaid (uses *_override keys read by the waterfall) ──
+    prepaid_discount_override: num(r.prepaid_discount),
+    prepaid_type_override    : r.prepaid_type ? rtype(r.prepaid_type) : 'flat',
+
+    // ── Shipping ──
+    shipping_fee : num(r.shipping_fee),
+    shipping_rule: (r.shipping_rule||'yes').trim().toLowerCase()==='no' ? 'no' : 'yes',
+
+    // ── Links / tracking ──
+    product_url  : r.product_url || '#',
+    store_id     : r.storeid || '',
+    tracking_url : (r.tracking_url||'').trim(),   // optional affiliate template; blank → product_url
+    linkurl      : r.product_url || '#',
+
+    // ── Row-level gates ──
+    _valid   : (r.valid||'yes').trim().toLowerCase()==='yes',
+    _isDeal  : (r.deal_or_no_deal||'Deal').trim().toLowerCase()!=='no deal',
+    _hidden  : bool(r.hidden),
+  };
+}
+
+// ── Fetch — no cache, always fresh from the published sheet ─────
+async function fetchDeals(){
+  if(!SHEET_CSV_URL || SHEET_CSV_URL.startsWith('PASTE_')){
+    throw new Error('SHEET_CSV_URL is not set. Paste your published Google Sheet CSV link at the top of the script.');
+  }
+  const bust = (SHEET_CSV_URL.includes('?')?'&':'?') + 'cb=' + Date.now();
+  const res  = await fetch(SHEET_CSV_URL + bust, {cache:'no-store'});
+  const text = await res.text();
+  const rows = parseCSV(text);
+
+  const seen = new Set();
+  ALL_DEALS = rows
+    .map(mapRow)
+    .filter(d => d.id)                                   // must have a product_id
+    .filter(d => d._valid && d._isDeal && !d._hidden)    // visibility gates
+    .filter(d => d.availability !== false)               // in stock only
+    .filter(d => { if(seen.has(d.id)) return false; seen.add(d.id); return true; }); // de-dupe by product_id
+}
+
+// Build the category order from whatever the sheet contains, keeping a sensible priority
+CATEGORY_ORDER = [];
+
+// ── Sidebar ──────────────────────────────────────────────────────
+function buildSidebar(){
+  const allCats=[...new Set(ALL_DEALS.map(d=>d.category).filter(Boolean))];
+  const orderedCats=[...CATEGORY_ORDER.filter(c=>allCats.includes(c)),...allCats.filter(c=>!CATEGORY_ORDER.includes(c)).sort()];
+  const topbar=document.getElementById('topbar-inner');
+  topbar.querySelectorAll('.cat-pill:not([data-cat="all"])').forEach(p=>p.remove());
+  const sep=topbar.querySelector('.filter-sep');
+  orderedCats.forEach(cat=>{
+    const p=document.createElement('button');p.className='cat-pill';p.dataset.cat=cat;p.textContent=cat;
+    p.onclick=()=>setCat(cat);topbar.insertBefore(p,sep);
+  });
+  renderBrandList('');
+  document.getElementById('brand-search').addEventListener('input',function(){renderBrandList(this.value.trim().toLowerCase());});
+}
+function getBrandCounts(){const c={};ALL_DEALS.forEach(d=>{if(d.report_storename)c[d.report_storename]=(c[d.report_storename]||0)+1;});return c;}
+function renderBrandList(query){
+  const counts=getBrandCounts();
+  const brands=Object.entries(counts).filter(([b])=>!query||b.toLowerCase().includes(query)).sort((a,b)=>b[1]-a[1]);
+  const el=document.getElementById('brand-list');el.innerHTML='';
+  brands.forEach(([brand,count])=>{
+    const item=document.createElement('div');item.className='brand-item';
+    const checked=selectedBrands.has(brand);
+    item.innerHTML=`<div class="brand-cb${checked?' checked':''}" data-brand="${brand}"></div><span class="brand-name">${brand}</span><span class="brand-count">${count}</span>`;
+    item.onclick=()=>toggleBrand(brand);el.appendChild(item);
+  });
+}
+function toggleBrand(brand){if(selectedBrands.has(brand))selectedBrands.delete(brand);else selectedBrands.add(brand);document.getElementById('clear-brands').style.display=selectedBrands.size>0?'':'none';renderBrandList(document.getElementById('brand-search').value.trim().toLowerCase());renderDeals();}
+function clearBrands(){selectedBrands.clear();document.getElementById('clear-brands').style.display='none';renderBrandList('');renderDeals();}
+function setCat(cat){
+  activeCat=cat;
+  document.querySelectorAll('.cat-pill').forEach(p=>p.classList.toggle('active',p.dataset.cat===cat));
+  // Reset brand dropdown when category changes
+  const bfs=document.getElementById('brand-filter-select');
+  if(bfs){bfs.value='';activeBrandFilter='';}
+  populateBrandDropdown();
+  renderDeals();
+}
+function populateBrandDropdown(){
+  const sel=document.getElementById('brand-filter-select');
+  if(!sel)return;
+  const cur=sel.value;
+  const filtered=activeCat==='all'?ALL_DEALS:ALL_DEALS.filter(d=>d.category===activeCat);
+  const brands=[...new Set(filtered.map(d=>d.report_storename).filter(Boolean))].sort();
+  sel.innerHTML='<option value="">All Brands</option>';
+  brands.forEach(b=>{const o=document.createElement('option');o.value=b;o.textContent=b;if(b===cur)o.selected=true;sel.appendChild(o);});
+}
+
+// ── Filter + sort ────────────────────────────────────────────────
+function getFiltered(){
+  let deals=[...ALL_DEALS];
+  if(activeCat!=='all')deals=deals.filter(d=>d.category===activeCat);
+  if(selectedBrands.size>0)deals=deals.filter(d=>selectedBrands.has(d.report_storename));
+  if(activeBrandFilter)deals=deals.filter(d=>d.report_storename===activeBrandFilter);
+  if(priceMin)deals=deals.filter(d=>d.final_deal_price>=priceMin);
+  if(priceMax)deals=deals.filter(d=>d.final_deal_price<=priceMax);
+  if(searchQuery){const q=searchQuery.toLowerCase();deals=deals.filter(d=>(d.product_name||'').toLowerCase().includes(q)||(d.category||'').toLowerCase().includes(q)||(d.report_storename||'').toLowerCase().includes(q));}
+  if(activeSort==='discount')deals.sort((a,b)=>b.discount_percent-a.discount_percent);
+  else if(activeSort==='price_asc')deals.sort((a,b)=>a.final_deal_price-b.final_deal_price);
+  else if(activeSort==='price_desc')deals.sort((a,b)=>b.final_deal_price-a.final_deal_price);
+  else if(activeSort==='newest')deals.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  else deals.sort((a,b)=>(a.deal_order||999)-(b.deal_order||999));
+  return deals;
+}
+
+// ── Render grid — card timers survive filter/sort re-renders ─────
+let cardTimerIds = []; // separate from allIntervals so detail page doesn't kill them
+
+function renderDeals(){
+  // Clear only card timers, not detail page timers
+  cardTimerIds.forEach(clearInterval);cardTimerIds=[];
+  const deals=getFiltered();
+  const el=document.getElementById('content');el.innerHTML='';
+  const header=document.getElementById('results-header');
+  if(deals.length>0){
+    header.style.display='flex';
+    const brandStr=selectedBrands.size>0?` · ${[...selectedBrands].join(', ')}`:'';
+    const catStr=activeCat!=='all'?` in ${activeCat}`:'';
+    document.getElementById('results-count').innerHTML=`<strong>${deals.length}</strong> deal${deals.length!==1?'s':''}${catStr}${brandStr}`;
+  }else{header.style.display='none';}
+  if(!deals.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">No deals found</div><div>Try adjusting your filters</div></div>';return;}
+  deals.forEach(deal=>el.appendChild(makeCard(deal)));
+}
+
+// ── Deal card — single image with swipe ──────────────────────────
+function makeCard(deal,small){
+  const card=document.createElement('div');
+  card.className='deal-card'+(deal.availability===false?' oos':'');
+  if(small)card.style.fontSize='12px';
+  const imgs=getImages(deal);
+  const isRewards=(deal.store_type||deal.ck_admin_stores?.store_type)==='Rewards';
+  const vc=viewingCount(deal.id);
+  const finalPrice=Math.round(deal.final_deal_price||0);
+  const mrp=Math.round(deal.mrp||0);
+  const priceDrop=deal.price_dropped===true;
+  const qty=deal.quantity||1;
+
+  // Recalculate final price the same way the detail page does
+  // so card and detail always match
+  function cardCalcFinal(){
+    try{
+      const store=deal.ck_admin_stores||deal;
+      const groupid=store.groupid||deal.groupid||'A';
+      let cbVal;
+      if(groupid==='B1')cbVal=deal.b1_new_cashback??deal.cashback_override??store.cashback??0;
+      else if(groupid!=='A')cbVal=deal.cashback_override??0;
+      else cbVal=store.cashback??0;
+      const cbRaw=groupid!=='A'?(deal.cashback_override_type||'percent'):(store.cashback_type||'percent');
+      const cd=deal.coupon_type==='percent'?(deal.discounted_price*(deal.coupon_discount/100)):(deal.coupon_discount||0);
+      const ac=deal.discounted_price-cd;
+      const pdAmt=deal.prepaid_type_override==='percent'?ac*((deal.prepaid_discount_override||0)/100):(deal.prepaid_discount_override||0);
+      const ap=ac-pdAmt;
+      const sf=deal.shipping_fee_override??store.shipping_fee??0;
+      const rule=deal.shipping_rule_override??store.shipping_rule??'yes';
+      const cbBase=rule==='yes'?ap+sf:ap;
+      const cbAmt=cbRaw==='percent'?cbBase*(cbVal/100):cbVal;
+      const pAfterCb=cbBase-cbAmt;
+      return Math.round(rule==='no'?pAfterCb+sf:pAfterCb);
+    }catch(e){return finalPrice;}
+  }
+  const calculatedFinal=Math.round(deal.final_deal_price||cardCalcFinal());
+  const perUnit=qty>1?Math.round(calculatedFinal/qty):0;
+  const disc=mrp>0?Math.round((mrp-calculatedFinal)/mrp*100):(Math.round(deal.discount_percent||0));
+
+  // Build swipeable image slider — multiple slides, one visible at a time
+  let slidesHtml='';
+  if(imgs.length>0){
+    // Use background-image divs — works on ALL iOS versions, zero rendering issues
+    slidesHtml=imgs.map(url=>`<div class="card-img-slide"><div class="card-img-bg" style="background-image:url('${url.replace(/'/g,"%27")}')"></div></div>`).join('');
+  } else {
+    slidesHtml='<div class="card-img-slide"><div class="card-img-placeholder">🛍</div></div>';
+  }
+
+  card.innerHTML=`
+    <div class="card-img-wrap">
+      <div class="card-img-slider" data-idx="0">${slidesHtml}</div>
+      ${disc>0?`<div class="card-discount-badge">${disc}% OFF</div>`:''}
+      ${priceDrop?`<div class="price-drop-ribbon">🔥 Price Dropped</div>`:''}
+      ${deal.availability===false?'<div class="card-oos-overlay">Out of Stock</div>':''}
+      <div class="card-timer"><span class="card-timer-text">--:--:--</span></div>
+    </div>
+    <div class="card-body">
+      <div class="brand_name">
+	  <div class="card-retailer">${deal.report_storename||''}</div>
+	   <div class="card-viewing"><span class="card-viewing-dot"></span><span>${vc} viewing</span></div>
+	   
+	   </div>
+      <div class="card-name">${deal.product_name||''}</div>
+      <div class="card-prices">
+        <span class="card-mrp">₹${fmt(mrp)}</span>
+        <span class="card-price">₹${fmt(calculatedFinal)}</span>
+      </div>
+      ${qty>1?`<div style="font-size:11px;color:var(--text2);margin-top:2px">For ${qty} units · <strong style="color:var(--green)">₹${fmt(perUnit)}/unit</strong></div>`:''}
+      <div class="card-footer">
+        <button class="card-quick-buy" onclick="event.stopPropagation();showDetail('${deal.id}')">View Deal</button>
+       
+      </div>
+    </div>`;
+
+  // Swipe logic on card image
+  if(imgs.length>1){
+    const slider=card.querySelector('.card-img-slider');
+    let idx=0,startX=0,dragging=false;
+    const goTo=(i)=>{idx=Math.max(0,Math.min(imgs.length-1,i));slider.style.transform=`translateX(-${idx*100}%)`;};
+    slider.addEventListener('touchstart',e=>{startX=e.touches[0].clientX;dragging=true;},{passive:true});
+    slider.addEventListener('touchend',e=>{
+      if(!dragging)return;dragging=false;
+      const diff=startX-e.changedTouches[0].clientX;
+      if(Math.abs(diff)>40)goTo(diff>0?idx+1:idx-1);
+    });
+    // Mouse swipe on desktop
+    slider.addEventListener('mousedown',e=>{startX=e.clientX;dragging=true;e.preventDefault();});
+    slider.addEventListener('mouseup',e=>{if(!dragging)return;dragging=false;const diff=startX-e.clientX;if(Math.abs(diff)>40)goTo(diff>0?idx+1:idx-1);});
+  }
+
+  // Timer — uses cardTimerIds so it survives filter/sort re-renders
+  const timerEl=card.querySelector('.card-timer-text');
+  const updTimer=()=>{if(timerEl&&document.contains(timerEl))timerEl.textContent=getTimeLeft(deal.timer_hours,true);};
+  updTimer();cardTimerIds.push(setInterval(updTimer,1000));
+
+  card.onclick=()=>showDetail(deal.id);
+  return card;
+}
+
+// ── Skeletons ────────────────────────────────────────────────────
+function showSkeletons(){document.getElementById('skeletons').innerHTML=Array(8).fill(0).map(()=>`<div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-body"><div class="skel-line skeleton" style="width:45%;height:8px"></div><div class="skel-line skeleton" style="width:90%"></div><div class="skel-line skeleton" style="width:65%"></div><div class="skel-line skeleton" style="width:40%;height:16px;margin-top:4px"></div></div></div>`).join('');}
+function hideSkeletons(){document.getElementById('skeletons').innerHTML='';}
+
+// ── Search ───────────────────────────────────────────────────────
+let searchTimeout;
+document.getElementById('search').addEventListener('input',function(){
+  clearTimeout(searchTimeout);const q=this.value.trim();
+  if(q.length>1){showSuggestions(q);searchTimeout=setTimeout(()=>{searchQuery=q;renderDeals();},200);}
+  else{document.getElementById('search-suggestions').style.display='none';searchQuery='';renderDeals();}
+});
+document.addEventListener('click',e=>{if(!e.target.closest('#search-wrap'))document.getElementById('search-suggestions').style.display='none';});
+function showSuggestions(q){
+  const ql=q.toLowerCase();
+  const matches=ALL_DEALS.filter(d=>(d.product_name||'').toLowerCase().includes(ql)||(d.category||'').toLowerCase().includes(ql)).sort((a,b)=>(a.deal_order||999)-(b.deal_order||999)).slice(0,3);
+  const el=document.getElementById('search-suggestions');
+  if(!matches.length){el.style.display='none';return;}
+  el.innerHTML=matches.map(d=>{const imgs=getImages(d);return`<div class="suggestion-item" onclick="showDetail('${d.id}')"><div class="sug-img-wrap">${imgs[0]?`<img class="sug-img" src="${imgs[0]}" onerror="this.style.display='none'">`:'🛍'}</div><div class="sug-info"><div class="sug-name">${d.product_name||''}</div><div class="sug-price">${d.report_storename} · ₹${fmt(Math.round(d.final_deal_price))}</div></div><span class="sug-badge">${Math.round(d.discount_percent||0)}% OFF</span></div>`;}).join('');
+  el.style.display='block';
+}
+document.getElementById('sort-select').onchange=function(){activeSort=this.value;renderDeals();};
+document.getElementById('brand-filter-select').onchange=function(){activeBrandFilter=this.value;renderDeals();};
+document.querySelector('.cat-pill[data-cat="all"]').onclick=()=>setCat('all');
+
+// ── Detail page ──────────────────────────────────────────────────
+function showDetail(dealId){
+  const deal=ALL_DEALS.find(d=>d.id===dealId);if(!deal)return;
+  window.__ckCurrentDeal=deal;
+  window.logDealEvent(deal,'dealview');
+  window.location.hash='deal/'+dealId;window.scrollTo(0,0);
+  renderDetail(deal);
+  document.getElementById('listing-page').style.display='none';
+  document.getElementById('detail-page').style.display='block';
+  const fc=document.getElementById('floating-cta');
+  if(fc&&window.innerWidth<=900)fc.style.display='block';
+}
+function showListing(){
+  window.location.hash='';
+  allIntervals.forEach(item=>{
+    if(typeof item === 'number') clearInterval(item);
+    else if(item?._cleanup) item._cleanup();
+  });
+  allIntervals=[];
+  // Don't clear cardTimerIds here — renderDeals handles that
+  document.getElementById('floating-cta').style.display='none';
+  document.getElementById('detail-page').style.display='none';
+  document.getElementById('listing-page').style.display='block';
+}
+
+function renderDetail(deal){
+  allIntervals.forEach(clearInterval);allIntervals=[];
+  const imgs=getImages(deal);
+  const store=deal.ck_admin_stores||deal;
+  const rates=parseArr(deal.retailer_rates);
+  const isRewards=store.store_type==='Rewards';
+  const vc=viewingCount(deal.id);
+  const groupid=store.groupid||deal.groupid||'A';
+  const isB1=groupid==='B1';
+  let cb,cbRawType;
+  if(isB1){cb=deal.b1_new_cashback??deal.cashback_override??store.cashback??0;cbRawType='percent';}
+  else if(groupid!=='A'){cb=deal.cashback_override??0;cbRawType=deal.cashback_override_type||'percent';}
+  else{cb=store.cashback??0;cbRawType=store.cashback_type||'percent';}
+  // cbType: symbol for display — ₹X for flat, X% for percent
+  const cbType=cbRawType==='percent'?'%':'₹';
+  // cbDisplay: correctly formatted — "₹65" not "65₹"
+  const cbDisplay=cbRawType==='percent'?`${cb}%`:`₹${cb}`;
+  const existingCb=isB1?(deal.b1_existing_cashback??null):null;
+
+  // Gallery — swipeable single image with dot indicators and arrows. No auto-rotate.
+  const galleryEl=document.getElementById('gallery');
+  let gIdx=0,gStartX=0,gDragging=false;
+  window.gIdx=0; // global so arrow onclick strings can access it
+  const slidesHtml=imgs.length>0
+    ?imgs.map(url=>`<div class="gallery-slide"><div class="gallery-slide-bg" style="background-image:url('${url.replace(/'/g,"%27")}')"></div></div>`).join('')
+    :'<div class="gallery-slide"><div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:60px">🛍</div></div>';
+  const dotsHtml=imgs.length>1?imgs.map((_,i)=>`<div class="gallery-dot${i===0?' active':''}" onclick="gGoTo(${i})"></div>`).join(''):'';
+  // Arrows use window.gIdx so they always read current value
+  const arrowsHtml=imgs.length>1?`<button class="gallery-arrow prev" onclick="gGoTo(window.gIdx-1)">&#8249;</button><button class="gallery-arrow next" onclick="gGoTo(window.gIdx+1)">&#8250;</button>`:'';
+
+  galleryEl.innerHTML=`
+    <div class="gallery-main" id="gmain">
+      <div class="gallery-slider" id="gslider">${slidesHtml}</div>
+      ${arrowsHtml}
+    </div>
+    ${imgs.length>1?`<div class="gallery-dots" id="gdots">${dotsHtml}</div>`:''}`;
+
+  window.gGoTo=(i)=>{
+    window.gIdx=Math.max(0,Math.min(imgs.length-1,i));
+    const sl=document.getElementById('gslider');
+    if(sl)sl.style.transform=`translateX(-${window.gIdx*100}%)`;
+    document.querySelectorAll('#gdots .gallery-dot').forEach((d,di)=>d.classList.toggle('active',di===window.gIdx));
+  };
+
+  if(imgs.length>1){
+    const gmain=document.getElementById('gmain');
+    // Touch swipe
+    gmain.addEventListener('touchstart',e=>{gStartX=e.touches[0].clientX;gDragging=true;},{passive:true});
+    gmain.addEventListener('touchend',e=>{
+      if(!gDragging)return;gDragging=false;
+      const diff=gStartX-e.changedTouches[0].clientX;
+      if(Math.abs(diff)>40)window.gGoTo(diff>0?window.gIdx+1:window.gIdx-1);
+    },{passive:true});
+    // Mouse drag — listen on document so fast drags don't miss mouseup
+    gmain.addEventListener('mousedown',e=>{
+      if(e.target.closest('.gallery-arrow'))return; // don't interfere with arrows
+      gStartX=e.clientX;gDragging=true;e.preventDefault();
+    });
+    const onMouseUp=e=>{
+      if(!gDragging)return;gDragging=false;
+      const diff=gStartX-e.clientX;
+      if(Math.abs(diff)>40)window.gGoTo(diff>0?window.gIdx+1:window.gIdx-1);
+    };
+    document.addEventListener('mouseup',onMouseUp);
+    // Clean up listener when leaving detail page
+    allIntervals.push({_cleanup:()=>document.removeEventListener('mouseup',onMouseUp)});
+  }
+
+  const qty=deal.quantity||1;
+
+  // Waterfall — deal.mrp and deal.discounted_price are already multiplied by qty in DB
+  // perUnit = final / qty for display only
+  function calcWf(cbVal){
+    const cd=deal.coupon_type==='percent'?(deal.discounted_price*(deal.coupon_discount/100)):(deal.coupon_discount||0);
+    const ac=deal.discounted_price-cd;
+    const pdAmt=deal.prepaid_type_override==='percent'?ac*((deal.prepaid_discount_override||0)/100):(deal.prepaid_discount_override||0);
+    const ap=ac-pdAmt;
+    const sf=deal.shipping_fee_override??store.shipping_fee??0;
+    const rule=deal.shipping_rule_override??store.shipping_rule??'yes';
+    const cbBase=rule==='yes'?ap+sf:ap;
+    const cbAmt=cbRawType==='percent'?cbBase*(cbVal/100):cbVal;
+    const pAfterCb=cbBase-cbAmt;
+    const final=Math.round(rule==='no'?pAfterCb+sf:pAfterCb);
+    const discPct=deal.mrp>0?Math.round((deal.mrp-final)/deal.mrp*100):0;
+    return{cd,ac,pdAmt,ap,sf,rule,cbAmt,final,discPct,cbVal};
+  }
+  function buildWfRows(w){
+    const qtyLabel=qty>1?` (${qty} units)`:'';
+    // per unit = total final / qty
+    const perUnit=qty>1?Math.round(w.final/qty):0;
+    const mrpPerUnit=qty>1?Math.round(deal.mrp/qty):0;
+    let r=`<div class="wf-r s"><span>MRP${qtyLabel}</span><span class="wv">₹${fmt(deal.mrp)}</span></div>`;
+    if(qty>1)r+=`<div class="wf-r" style="color:var(--text3);font-size:11px"><span>  ₹${fmt(mrpPerUnit)}/unit × ${qty}</span><span class="wv"></span></div>`;
+    r+=`<div class="wf-r"><span>Discounted price</span><span class="wv">₹${fmt(deal.discounted_price)}</span></div>`;
+    if(w.cd>0)r+=`<div class="wf-r d"><span>Coupon (${deal.coupon_code||''})</span><span class="wv">−₹${fmt(w.cd)}</span></div>`;
+    if(w.pdAmt>0)r+=`<div class="wf-r d"><span>Prepaid discount</span><span class="wv">−₹${fmt(w.pdAmt)}</span></div>`;
+    if(w.sf>0)r+=`<div class="wf-r a"><span>+ Shipping</span><span class="wv">₹${fmt(w.sf)}</span></div>`;
+    if(w.cbAmt>0)r+=`<div class="wf-r d"><span>CashKaro ${cbRawType==='percent'?w.cbVal+'%':'₹'+w.cbVal} ${isRewards?'Rewards':'Cashback'}</span><span class="wv">−₹${fmt(w.cbAmt)}</span></div>`;
+    r+=`<hr class="wf-hr"><div class="wf-r tot"><span>Final deal price${qtyLabel}</span><span class="wv">₹${fmt(w.final)}</span></div>`;
+    if(qty>1)r+=`<div class="wf-r" style="color:var(--green);font-weight:600"><span>Per unit</span><span class="wv">₹${fmt(perUnit)}</span></div>`;
+    r+=`<div class="wf-r sv"><span>🎉 You save ${w.discPct}% vs MRP</span></div>`;
+    return r;
+  }
+
+  const wNew=calcWf(cb);
+  // price_after_cb from the sheet is authoritative for the headline/CTA/total.
+  wNew.final  = Math.round(deal.final_deal_price || wNew.final);
+  wNew.discPct= deal.mrp>0 ? Math.max(0, Math.round((deal.mrp-wNew.final)/deal.mrp*100)) : wNew.discPct;
+  const wExisting=isB1&&existingCb!==null?calcWf(existingCb):null;
+  const userTabsHtml=isB1&&wExisting?`<div class="user-tabs" id="user-tabs">
+    <button class="user-tab active" id="tab-nu" onclick="switchUserTab('new')">🆕 New to ${deal.report_storename}<br><small style="font-size:10px;opacity:.8">₹${fmt(wNew.final)}</small></button>
+    <button class="user-tab" id="tab-eu" onclick="switchUserTab('existing')">🔄 Existing User<br><small style="font-size:10px;opacity:.8">₹${fmt(wExisting.final)}</small></button>
+  </div>`:'';
+
+  let ratesHtml='';
+  if(rates.length)ratesHtml=`<div style="margin-bottom:8px;font-size:12px;color:var(--text3);font-weight:600">Multiple rates:</div><table class="rates-table"><thead><tr><th>User type</th><th>Cashback</th></tr></thead><tbody>${rates.map(r=>`<tr><td>${r.rate_label}</td><td>${r.cashback}${r.cashback_type==='percent'?'%':'₹'}</td></tr>`).join('')}</tbody></table>`;
+
+  const tc=(store.cashback_tc||'').replace(/<script[^>]*>[\s\S]*?<\/script>/gi,'');
+  const disc=wNew.discPct;
+  const trackingSpeed=store.tracking_speed||'—';
+  const confirmDays=store.expected_confirmation_days||'—';
+  const storeType=store.store_type||'Cashback';
+  const cbWord=isRewards?'Rewards':'Cashback';
+  const finalRounded=Math.round(wNew.final);
+  const mrpRounded=Math.round(deal.mrp||0);
+  const perUnitRounded=qty>1?Math.round(finalRounded/qty):0;
+  const priceDrop=deal.price_dropped===true;
+  const trackNum=String(trackingSpeed).match(/\d+/)?.[0]||trackingSpeed;
+  const trackUnit=String(trackingSpeed).replace(/\d+/,'').trim()||'';
+  const rawDesc=deal.description||'';
+  const cleanDesc=rawDesc.replace(/₹\s*[\d,]+(\.\d+)?/g,()=>`₹${fmt(finalRounded)}`).replace(/\b\d+(\.\d+)?%\s*off\b/gi,`${disc}% off`);
+  const trackingUrl=buildTrackingUrl(deal,store);
+  const dealUrl=`${window.location.origin}${window.location.pathname}#deal/${deal.id}`;
+  // WhatsApp message — show per-unit for multi-quantity deals
+  const waMsgText=qty>1
+    ?`🔥 Get ${qty}x ${deal.product_name} for just ₹${fmt(finalRounded)} (₹${fmt(perUnitRounded)}/unit, MRP ₹${fmt(Math.round(mrpRounded/qty))} each) — ${disc}% off + ${cbDisplay} CashKaro ${cbWord}. Grab it here: ${dealUrl}`
+    :`🔥 Get ${deal.product_name} for just ₹${fmt(finalRounded)} (MRP ₹${fmt(mrpRounded)}) — ${disc}% off + ${cbDisplay} CashKaro ${cbWord}. Grab it here: ${dealUrl}`;
+  const waMsg=encodeURIComponent(waMsgText);
+  // CTA text — omit the cashback phrase when there's no cashback set yet
+  const cbPhrase = cb>0 ? ` &amp; Earn ${cbDisplay} ${cbWord}` : '';
+  const ctaText=qty>1?`Shop Now · ${qty} units${cb>0?` · Earn ${cbDisplay} ${cbWord}`:''}`:`Shop Now${cbPhrase}`;
+  // Per-unit line for detail page
+  const perUnitLine=qty>1?`<div id="dp-per-unit" style="font-size:13px;color:var(--text2);margin-top:6px">📦 <strong>${qty} units</strong> · <span style="color:var(--green);font-weight:700">₹${fmt(perUnitRounded)} per unit</span></div>`:'';
+  const qtyBadgeDetail=qty>1?` <span style="background:var(--accent-light);color:var(--accent);font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px">×${qty}</span>`:'';
+
+  document.getElementById('detail-info').innerHTML=`
+    <div class="detail-retailer-row">
+      <span class="detail-retailer">${deal.report_storename||''}</span>
+      <span class="card-type-badge ${isRewards?'badge-rewards':'badge-cashback'}">${storeType}</span>
+      ${priceDrop?`<span style="background:#fef2f2;color:#e53e3e;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid #fecaca">🔥 Price Dropped</span>`:''}
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+	   <div class="detail-timer">
+        <span class="detail-timer-icon">⏱</span>
+        <span class="detail-timer-value" id="detail-timer-val">--:--:--</span>
+      </div>
+      <span style="font-family:var(--font);font-size:13px; margin-bottom: 10px; width: 100%; font-weight:700;color:var(--text2)">${deal.report_storename||''}</span>
+   
+    </div>
+    <div class="detail-name">${deal.product_name||''}${qtyBadgeDetail}</div>
+    ${userTabsHtml}
+    <div class="detail-price-block">
+      
+	  <div class="detail-price-row">
+        <span class="detail-mrp">₹${fmt(mrpRounded)}</span>
+        <span class="detail-price" id="dp-final">₹${fmt(finalRounded)}</span>
+        <span class="detail-discount-badge" id="dp-disc">${disc}% OFF</span>
+      </div>
+      ${perUnitLine}
+
+            </div>        ${deal.coupon_code ? `      <div style="margin-top:12px;padding:6px 14px; width: auto; background:#fff;border:1.5px dashed #dddddd;border-radius:10px;display:inline-block">         <div style="float: left; margin-right: 12px;">           <div class="coupon-code" style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#92400e;     margin-top: 6px; margin-bottom:4px">Code: <span>${deal.coupon_code}</span></div>           </div>         <button onclick="navigator.clipboard.writeText('${deal.coupon_code}').then(()=>{this.textContent='Copied!';this.style.background='#16a34a';setTimeout(()=>{this.textContent='Copy';this.style.background='#f59e0b';},2000)})" style="background:#f59e0b;color:#fff;border:none;padding:0px 6px;border-radius:8px;font-family:var(--font);font-size:24px;font-weight:700;cursor:pointer;flex-shrink:0;transition:all .15s">&#x2398; </button>       </div>` : ''}       <div class="wf-inline-toggle" onclick="var b=this.nextElementSibling;b.classList.toggle('open');this.querySelector('.wf-arr').textContent=b.classList.contains('open')?'▴':'▾'">
+        <span>💡 How is this price calculated?</span><span class="wf-arr">▾</span>
+      </div>
+	  
+	  
+	  
+      <div class="wf-inline-body" id="wf-body">${buildWfRows(wNew)}</div>
+	  
+    </div>
+    <div class="inline-cta-wrap">
+      <a id="inline-cta-btn" class="cta-btn" href="${trackingUrl}" target="_blank" rel="noopener">${ctaText}</a>
+      <a class="share-btn" href="https://wa.me/?text=${waMsg}" target="_blank" rel="noopener">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+       
+      </a>
+      <div class="cta-sub" style="display:none"></div>
+    </div>
+    <div class="tabs-wrap">
+      <div class="tab-list">
+        <button class="tab-btn active" onclick="switchTab(this,'about')">About</button>
+        <button class="tab-btn" onclick="switchTab(this,'cbinfo')">${cbWord} Info</button>
+        <button class="tab-btn" onclick="switchTab(this,'terms')">T&amp;Cs</button>
+      </div>
+      <div class="tab-content active" id="tab-about">${cleanDesc?cleanDesc.replace(/\n/g,'<br>'):'<span style="color:var(--text3)">Description coming soon.</span>'}</div>
+      <div class="tab-content" id="tab-cbinfo">
+        <div class="cb-chips">
+          <div class="cb-chip green"><div class="cb-chip-label">${cbWord} tracks in</div><div class="cb-chip-val">${trackNum}</div><div class="cb-chip-unit">${trackUnit}</div></div>
+          <div class="cb-chip green"><div class="cb-chip-label">${cbWord} confirms in</div><div class="cb-chip-val">${confirmDays}</div><div class="cb-chip-unit">Days</div></div>
+          <div class="cb-chip"><div class="cb-chip-label">Type</div><div class="cb-chip-val" style="font-size:18px">${storeType}</div><div class="cb-chip-unit">${isRewards?'Store Credits':'Real Cash'}</div></div>
+        </div>
+        ${ratesHtml}
+      </div>
+      <div class="tab-content" id="tab-terms">${tc||'<span style="color:var(--text3)">Standard CashKaro T&Cs apply.</span>'}</div>
+    </div>`;
+
+  // Floating CTA
+  const fb=document.getElementById('floating-cta-btn');
+  const floatCtaText=qty>1?`Shop Now · ${qty} units · ₹${fmt(finalRounded)} total`:(cb>0?`Shop Now & Earn ${cbDisplay} ${cbWord}`:`Shop Now`);
+  if(fb){fb.href=trackingUrl;fb.textContent=floatCtaText;}
+
+  // B1 tab switch — updates price, per-unit, CTA, WA, waterfall
+  window.switchUserTab=(type)=>{
+    document.getElementById('tab-nu')?.classList.toggle('active',type==='new');
+    document.getElementById('tab-eu')?.classList.toggle('active',type==='existing');
+    const w=type==='existing'&&wExisting?wExisting:wNew;
+    const cbV=type==='existing'&&existingCb!==null?existingCb:cb;
+    const newUrl=buildTrackingUrl(deal,store);
+    const newFinal=Math.round(w.final);
+    const newPerUnit=qty>1?Math.round(newFinal/qty):0;
+    const newCtaText=qty>1?`Shop Now · ${qty} units · Earn ${cbRawType==='percent'?cbV+'%':'₹'+cbV} ${cbWord}`:`Shop Now & Earn ${cbRawType==='percent'?cbV+'%':'₹'+cbV} ${cbWord}`;
+    document.getElementById('dp-final').textContent='₹'+fmt(newFinal);
+    document.getElementById('dp-disc').textContent=w.discPct+'% OFF';
+    document.getElementById('wf-body').innerHTML=buildWfRows(w);
+    // Update per-unit line
+    const puEl=document.getElementById('dp-per-unit');
+    if(puEl&&qty>1)puEl.innerHTML=`📦 <strong>${qty} units</strong> · <span style="color:var(--green);font-weight:700">₹${fmt(newPerUnit)} per unit</span>`;
+    document.getElementById('tab-nu')?.querySelector('small')&&(document.getElementById('tab-nu').querySelector('small').textContent='₹'+fmt(Math.round(wNew.final)));
+    document.getElementById('tab-eu')?.querySelector('small')&&wExisting&&(document.getElementById('tab-eu').querySelector('small').textContent='₹'+fmt(Math.round(wExisting.final)));
+    const ib=document.getElementById('inline-cta-btn');if(ib){ib.href=newUrl;ib.textContent=newCtaText;}
+    if(fb){fb.href=newUrl;fb.textContent=qty>1?`🛍 Shop Now · ${qty} units · ₹${fmt(newFinal)} total`:`🛍 Shop Now & Earn ${cbRawType==='percent'?cbV+'%':'₹'+cbV} ${cbWord}`;}
+    const newWaMsgText=qty>1
+      ?`🔥 Get ${qty}x ${deal.product_name} for just ₹${fmt(newFinal)} (₹${fmt(newPerUnit)}/unit, MRP ₹${fmt(Math.round(mrpRounded/qty))} each) — ${w.discPct}% off + ${cbRawType==='percent'?cbV+'%':'₹'+cbV} CashKaro ${cbWord}. Grab it here: ${dealUrl}`
+      :`🔥 Get ${deal.product_name} for just ₹${fmt(newFinal)} (MRP ₹${fmt(mrpRounded)}) — ${w.discPct}% off + ${cbRawType==='percent'?cbV+'%':'₹'+cbV} CashKaro ${cbWord}. Grab it here: ${dealUrl}`;
+    document.querySelectorAll('.share-btn').forEach(b=>{b.href=`https://wa.me/?text=${encodeURIComponent(newWaMsgText)}`;});
+  };
+
+  // Timer
+  const updTimer=()=>{const el=document.getElementById('detail-timer-val');if(el)el.textContent=getTimeLeft(deal.timer_hours,true);else clearInterval(dtInt);};
+  updTimer();const dtInt=setInterval(updTimer,1000);allIntervals.push(dtInt);
+
+  // Similar deals
+  const detailInner=document.getElementById('detail-inner');
+  detailInner.querySelector('.similar-section')?.remove();
+  const similar=ALL_DEALS.filter(d=>d.id!==deal.id&&d.category===deal.category);
+  if(similar.length>0){
+    const sec=document.createElement('div');sec.className='similar-section';
+    sec.innerHTML=`<div class="similar-title"><span style="display:inline-block;width:4px;height:20px;background:var(--accent);border-radius:2px"></span>Deals you may like</div><div class="similar-grid" id="sim-grid"></div>`;
+    detailInner.appendChild(sec);
+    similar.forEach(d=>sec.querySelector('#sim-grid').appendChild(makeCard(d,true)));
+  }
+}
+
+function switchTab(btn,tabId){
+  btn.closest('.tabs-wrap').querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.closest('.tabs-wrap').querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');document.getElementById('tab-'+tabId).classList.add('active');
+}
+
+// ── Hash routing ─────────────────────────────────────────────────
+let pendingDealId=null;
+function handleHash(){
+  const hash=window.location.hash.slice(1);
+  if(hash.startsWith('deal/')){const id=hash.replace('deal/','');if(ALL_DEALS.length)showDetail(id);else pendingDealId=id;}
+  else showListing();
+}
+window.addEventListener('hashchange',handleHash);
+
+// ── Trending Deals Ending Soon — top 5 newest, mobile carousel ──
+function renderTrending(){
+  const el=document.getElementById('trending-scroll');
+  if(!el)return;
+  const trending=[...ALL_DEALS].sort((a,b)=>(b.discount_percent||0)-(a.discount_percent||0)).slice(0,5);
+  if(!trending.length){document.getElementById('trending-section').style.display='none';return;}
+  el.innerHTML='';
+  trending.forEach(deal=>{
+    const imgs=getImages(deal);
+    const disc=Math.round(deal.discount_percent||0);
+    const price=Math.round(deal.final_deal_price||0);
+    const card=document.createElement('div');
+    card.className='trending-card';
+    card.innerHTML=`
+      <div class="trending-img">
+        <div class="trending-img-bg" style="background-image:url('${(imgs[0]||'').replace(/'/g,'%27')}')"></div>
+        ${disc>0?`<div class="trending-disc">${disc}% OFF</div>`:''}
+      </div>
+      <div class="trending-info">
+        <div class="trending-name">${deal.product_name||''}</div>
+        <div class="trending-price">₹${fmt(price)}</div>
+      </div>`;
+    card.onclick=()=>showDetail(deal.id);
+    el.appendChild(card);
+  });
+}
+
+// ── Boot ─────────────────────────────────────────────────────────
+(async()=>{
+  showSkeletons();
+  document.getElementById('listing-page').style.display='block';
+  try{
+    await fetchDeals();
+  }catch(e){
+    console.error('Failed to load deals',e);
+    const c=document.getElementById('content');
+    if(c)c.innerHTML='<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Couldn\'t load deals</div><div>Check that the Google Sheet is published to the web as CSV and the link at the top of the file is correct.</div></div>';
+  }
+  hideSkeletons();buildSidebar();populateBrandDropdown();renderTrending();renderDeals();
+  document.getElementById('loader').style.display='none';
+  if(pendingDealId){showDetail(pendingDealId);pendingDealId=null;}
+  else handleHash();
+
+  // ── Auto-refresh — keep an open tab in sync with the sheet ──
+  if(AUTO_REFRESH_MIN>0){
+    setInterval(async()=>{
+      try{
+        await fetchDeals();
+        buildSidebar();populateBrandDropdown();renderTrending();
+        // only re-render the grid if the user is on the listing view
+        if(document.getElementById('listing-page').style.display!=='none') renderDeals();
+      }catch(e){/* keep showing current data on a failed refresh */}
+    }, AUTO_REFRESH_MIN*60*1000);
+  }
+})();
+
+// ── Image reliability fix ─────────────────────────────────────────
+// Background-images have no onerror, so if a request fails (slow
+// network, CDN hiccup, too many parallel loads) the slide stays
+// permanently blank. This block verifies every card/gallery bg image,
+// retries failed ones up to 2x with a cache-buster, and falls back to
+// the 🛍 placeholder only if all retries fail. Purely additive — no
+// existing behaviour changes.
+(function(){
+  const RETRIES=2;          // retries for non-first slides
+  const FIRST_RETRIES=6;    // first image is critical — retry much harder
+  const RETRY_DELAY=1000;
+  function extractUrl(el){
+    const m=(el.style.backgroundImage||'').match(/url\(["']?(.*?)["']?\)/);
+    return m?m[1]:null;
+  }
+  function bust(u){return u+(u.includes('?')?'&':'?')+'ckr='+Date.now();}
+  function setBg(el,u){el.style.backgroundImage=`url("${u}")`;}
+  // Is this element the FIRST slide of its slider/gallery?
+  function isFirstSlide(el){
+    const slide=el.closest('.card-img-slide,.gallery-slide');
+    return slide&&slide.parentElement&&slide.parentElement.firstElementChild===slide;
+  }
+  // Get the original URL of the first slide in the same slider
+  function firstSlideUrl(el){
+    const slider=el.closest('.card-img-slider,.gallery-slider');
+    if(!slider)return null;
+    const firstBg=slider.querySelector('.card-img-bg,.gallery-slide-bg');
+    return firstBg?(firstBg.dataset.origUrl||extractUrl(firstBg)):null;
+  }
+  function verify(el){
+    if(el.dataset.imgChecked)return;
+    el.dataset.imgChecked='1';
+    const url=extractUrl(el);
+    if(!url)return;
+    el.dataset.origUrl=url;
+    const first=isFirstSlide(el);
+    const maxRetries=first?FIRST_RETRIES:RETRIES;
+    let attempt=0;
+    function tryLoad(u){
+      const im=new Image();
+      im.onload=()=>{ if(attempt>0)setBg(el,u); };
+      im.onerror=()=>{
+        attempt++;
+        if(attempt<=maxRetries){
+          // growing backoff so retries land after the network frees up
+          setTimeout(()=>tryLoad(bust(url)),RETRY_DELAY*attempt);
+        }else if(!first){
+          // Non-first slide exhausted — fall back to the deal's FIRST image
+          // so the user always sees what the product is
+          const fu=firstSlideUrl(el);
+          if(fu&&fu!==url){
+            const fim=new Image();
+            fim.onload=()=>setBg(el,fu);
+            fim.onerror=()=>{const f2=bust(fu);const fim2=new Image();fim2.onload=()=>setBg(el,f2);fim2.src=f2;};
+            fim.src=fu;
+          }
+        }else{
+          // First image still failing after 6 retries (~21s) — keep trying
+          // in the background every 8s. The product image has to show.
+          const loop=setInterval(()=>{
+            const b=bust(url);const im2=new Image();
+            im2.onload=()=>{setBg(el,b);clearInterval(loop);};
+            im2.src=b;
+          },8000);
+          setTimeout(()=>clearInterval(loop),120000); // stop after 2 min
+        }
+      };
+      im.src=u;
+    }
+    tryLoad(url);
+  }
+  function scanAll(root){
+    (root&&root.querySelectorAll?root:document).querySelectorAll('.card-img-bg,.gallery-slide-bg').forEach(verify);
+  }
+  new MutationObserver(muts=>{
+    muts.forEach(m=>m.addedNodes.forEach(n=>{
+      if(n.nodeType!==1)return;
+      if(n.matches&&n.matches('.card-img-bg,.gallery-slide-bg'))verify(n);
+      if(n.querySelectorAll)scanAll(n);
+    }));
+  }).observe(document.body,{childList:true,subtree:true});
+  scanAll(document);
+})();
+</script>
+
+</body>
+</html>
