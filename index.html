@@ -627,21 +627,34 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
       • a product_id removed from the sheet → drops off the page
       • a changed price in the sheet → updates on the page
    ═══════════════════════════════════════════════════════════════════ */
-const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT_wje65nf4faYFkKNLuP4w1Sj_lRhpa6LApBMsxc8rr6_P4K6-8RJX9ruscClNzXnveLTNeWJyDhpH/pub?output=csv';
-const AUTO_REFRESH_MIN = 10;   // re-pull the sheet every N minutes (0 = off)
+const SHEET_ID        = '1w6t1YSbGF5fy_ZVHIZ4Er6jxquUY_SIsPHL-8sVoFpo';   // from https://docs.google.com/spreadsheets/d/<THIS>/edit
+const DEALS_TAB       = 'CK-Deals';                   // tab holding the products (exact, case-sensitive)
+const STORE_DATA_TAB  = 'Store-Data';                 // tab holding per-store info
+const AUTO_REFRESH_MIN = 10;   // re-pull every N minutes (0 = off)
 
-/* ── STORE-LEVEL CONTENT (Rewards Info + T&Cs, per retailer) ─────────
-   Make a tab named "Store-Data" in the SAME sheet with these columns:
-       storeid | store_name | rewards_info | tnc | tracking_speed | confirmation_days
-   • storeid      → matches the storeid on each deal (primary key)
-   • store_name   → optional alternate match (e.g. "Amazon") + display
-   • rewards_info → text/HTML for the Rewards/Cashback Info tab
-   • tnc          → text/HTML for the T&Cs tab
+/* Reads any tab BY NAME from the same spreadsheet. REQUIREMENT: the sheet
+   must be shared → "Anyone with the link" → Viewer (so both tabs are readable).
+   If you'd rather keep explicit "Publish to web" CSV links, paste them into the
+   *_OVERRIDE constants below and they take precedence. */
+const gvizCsv = tab => (SHEET_ID && !SHEET_ID.startsWith('PASTE_'))
+  ? `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`
+  : '';
+const SHEET_CSV_URL_OVERRIDE            = '';   // optional: CK-Deals published-CSV link
+const SHEET_STORE_DATA_CSV_URL_OVERRIDE = '';   // optional: Store-Data published-CSV link
+
+const DEALS_URL      = (SHEET_CSV_URL_OVERRIDE            && !SHEET_CSV_URL_OVERRIDE.startsWith('PASTE_'))            ? SHEET_CSV_URL_OVERRIDE            : gvizCsv(DEALS_TAB);
+const STORE_DATA_URL = (SHEET_STORE_DATA_CSV_URL_OVERRIDE && !SHEET_STORE_DATA_CSV_URL_OVERRIDE.startsWith('PASTE_')) ? SHEET_STORE_DATA_CSV_URL_OVERRIDE : gvizCsv(STORE_DATA_TAB);
+
+/* ── STORE-LEVEL CONTENT (per retailer, from the "Store-Data" tab) ───
+   Columns read: storeid | store_name | store_type | tracking_speed |
+                 confirmation_days | tnc_desktop | tnc_app
+   • storeid            → matches the storeid on each deal (primary key)
+   • store_name         → alternate match + display
+   • store_type         → "Rewards" or "Cashback" (drives labels/CTA)
    • tracking_speed / confirmation_days → the two info chips
-   One row per store. Publish that tab to web as CSV and paste its link below.
-   Leave blank for now — deals still work; those tabs just show defaults.
+   • tnc_desktop / tnc_app → T&Cs shown by device (desktop vs mobile)
+   Read automatically by tab name — nothing to paste here.
    ─────────────────────────────────────────────────────────────────── */
-const SHEET_STORE_DATA_CSV_URL = 'PASTE_YOUR_STORE_DATA_TAB_CSV_URL_HERE';
 let STORE_DATA = {};   // keyed by storeid AND by lowercased store_name
 
 /* ── AFFILIATE TRACKING — one fixed template for every deal ──────────
@@ -860,7 +873,7 @@ function mapRow(r){
 
     // ── Links / tracking ──
     product_url  : r.product_url || '#',
-    store_id     : r.storeid || '',
+    store_id     : String(r.storeid||'').replace(/[,\s]/g,''),   // normalized (gviz may add separators)
     tracking_url : (r.tracking_url||'').trim(),   // optional affiliate template; blank → product_url
     linkurl      : r.product_url || '#',
 
@@ -879,12 +892,15 @@ function mapRow(r){
 
 // ── Fetch — no cache, always fresh from the published sheet ─────
 async function fetchDeals(){
-  if(!SHEET_CSV_URL || SHEET_CSV_URL.startsWith('PASTE_')){
-    throw new Error('SHEET_CSV_URL is not set. Paste your published Google Sheet CSV link at the top of the script.');
+  if(!DEALS_URL){
+    throw new Error('No data source set. Add your SHEET_ID (or a published-CSV override) at the top of the script.');
   }
-  const bust = (SHEET_CSV_URL.includes('?')?'&':'?') + 'cb=' + Date.now();
-  const res  = await fetch(SHEET_CSV_URL + bust, {cache:'no-store'});
+  const bust = (DEALS_URL.includes('?')?'&':'?') + 'cb=' + Date.now();
+  const res  = await fetch(DEALS_URL + bust, {cache:'no-store'});
   const text = await res.text();
+  if(text.trim().startsWith('<')){
+    throw new Error('The sheet is not readable. Share it as "Anyone with the link → Viewer" (or use a published-CSV override).');
+  }
   const rows = parseCSV(text);
 
   const seen = new Set();
@@ -901,14 +917,14 @@ CATEGORY_ORDER = [];
 
 // ── Fetch the Store-Data tab → map keyed by storeid and by store_name ──
 async function fetchStoreData(){
-  if(!SHEET_STORE_DATA_CSV_URL || SHEET_STORE_DATA_CSV_URL.startsWith('PASTE_')) return; // optional
+  if(!STORE_DATA_URL) return; // optional
   try{
-    const bust=(SHEET_STORE_DATA_CSV_URL.includes('?')?'&':'?')+'cb='+Date.now();
-    const res=await fetch(SHEET_STORE_DATA_CSV_URL+bust,{cache:'no-store'});
+    const bust=(STORE_DATA_URL.includes('?')?'&':'?')+'cb='+Date.now();
+    const res=await fetch(STORE_DATA_URL+bust,{cache:'no-store'});
     const rows=parseCSV(await res.text());
     const map={};
     rows.forEach(r=>{
-      const sid=String(r.storeid||'').trim();
+      const sid=String(r.storeid||'').replace(/[,\s]/g,'');
       const sname=String(r.store_name||'').trim().toLowerCase();
       if(sid) map[sid]=r;
       if(sname) map[sname]=r;
@@ -919,7 +935,7 @@ async function fetchStoreData(){
 
 // Find the Store-Data row for a deal: match by storeid first, then store name
 function storeDataFor(deal){
-  const byId = deal.store_id ? STORE_DATA[String(deal.store_id).trim()] : null;
+  const byId = deal.store_id ? STORE_DATA[String(deal.store_id).replace(/[,\s]/g,'')] : null;
   if(byId) return byId;
   const nm = (deal.seller||deal.report_storename||'').trim().toLowerCase();
   return STORE_DATA[nm] || {};
@@ -1297,11 +1313,15 @@ function renderDetail(deal){
     .replace(/\{cashback_word\}/gi, cbWord)
     .replace(/\{cashback\}/gi, cb>0?cbDisplay:'');
   function autoAbout(){
-    const p=[];
-    p.push(`${deal.product_name||'This product'}${_brandNice?` by ${_brandNice}`:''} is available for ₹${fmt(finalRounded)}${mrpRounded>finalRounded?`, down from ₹${fmt(mrpRounded)} (${disc}% off)`:''}.`);
-    if(deal.coupon_code) p.push(`Apply code ${deal.coupon_code} at checkout.`);
-    if(cb>0) p.push(`You also earn ${cbDisplay} CashKaro ${cbWord} on this order.`);
-    return p.join(' ');
+    const eff = finalRounded;                       // effective price (post cashback/rewards)
+    const pay = finalRounded + (wNew.cbAmt||0);      // price paid at checkout (pre cashback/rewards)
+    const name = `${deal.product_name||'This product'}${_brandNice?` by ${_brandNice}`:''}`;
+    const off = disc>0 ? ` — ${disc}% off` : '';
+    if(cb>0){
+      return `${name}: ₹${fmt(mrpRounded)} MRP, ₹${fmt(pay)} at checkout${deal.coupon_code?` (with code ${deal.coupon_code})`:''}. `
+           + `You earn ${cbDisplay} CashKaro ${cbWord} (₹${fmt(wNew.cbAmt)} back), bringing your effective price to ₹${fmt(eff)}${off}.`;
+    }
+    return `${name}: ₹${fmt(mrpRounded)} MRP, now ₹${fmt(eff)}${deal.coupon_code?` with code ${deal.coupon_code}`:''}${off}.`;
   }
   const aboutHtml = cleanDesc
     ? cleanDesc.replace(/\n/g,'<br>')
