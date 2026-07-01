@@ -51,7 +51,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 #sort-bar-inner::-webkit-scrollbar{display:none}
 .sort-label{font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap;flex-shrink:0}
 .sort-divider{width:1px;height:18px;background:var(--border);flex-shrink:0}
-.cat-pill{flex-shrink:0;background:transparent;border:1.5px solid var(--border);color:var(--text2);padding:4px 14px;border-radius:20px;cursor:pointer;font-family:var(--body);font-size:12px;font-weight:500;transition:all .15s;white-space:nowrap}
+.cat-pill{flex-shrink:0;background:transparent;border:1.5px solid var(--border);color:var(--text2);padding:5px 12px;border-radius:20px;cursor:pointer;font-family:var(--body);font-size:12px;font-weight:500;transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;line-height:1}
+.cat-ico{font-size:15px;line-height:1}
 .cat-pill:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
 .cat-pill.active {
     background: #0036da;
@@ -547,7 +548,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
   </div>
   <div id="topbar">
     <div id="topbar-inner" class="tab">
-      <button class="cat-pill active" data-cat="all">All Deals</button>
+      <button class="cat-pill active" data-cat="all"><span class="cat-ico">✨</span>All</button>
       <div class="filter-sep"></div>
     </div>
     <div id="sort-bar">
@@ -829,7 +830,7 @@ function mapRow(r){
     id,
     product_name : r.product_name || '',
     // brand is the meaningful filter on an Amazon-only feed → use it as the "store" label
-    report_storename : r.brand || r.seller || '',
+    report_storename : r.seller || r.brand || '',   // "brand" label/filter uses the seller column
     seller       : r.seller || '',
     brand        : r.brand || '',
 
@@ -953,6 +954,44 @@ function pickTnc(SD){
 }
 
 // ── Sidebar ──────────────────────────────────────────────────────
+const CATEGORY_ICONS={
+  'Beauty':'💄','Apparel':'👕','Automotive':'🚗','Home':'🏠','Home Decor':'🖼️',
+  'Kitchenware':'🍴','Cookware':'🍳','Home & Kitchen Appliances':'🔌',
+  'Computer & IT Accessories':'💻','Electronics':'📱','Audio':'🎧',
+  'Books & Toys':'📚','Sports':'⚽','Grocery':'🛒','Luggage':'🧳',
+  'Baby Products':'🍼','Personal Care Appliances':'💇',
+  'Health & Personal Care Supplements':'💊'
+};
+const CAT_SHORT={
+  'Computer & IT Accessories':'Computers','Home & Kitchen Appliances':'Appliances',
+  'Health & Personal Care Supplements':'Health','Personal Care Appliances':'Personal Care',
+  'Baby Products':'Baby'
+};
+function catIcon(c){
+  if(CATEGORY_ICONS[c])return CATEGORY_ICONS[c];
+  const l=(c||'').toLowerCase();
+  if(l.includes('beauty')||l.includes('cosmet'))return '💄';
+  if(l.includes('baby'))return '🍼';
+  if(l.includes('kitchen')&&l.includes('appliance'))return '🔌';
+  if(l.includes('cook'))return '🍳';
+  if(l.includes('kitchen'))return '🍴';
+  if(l.includes('cloth')||l.includes('apparel')||l.includes('fashion')||l.includes('footwear'))return '👕';
+  if(l.includes('auto')||l.includes('car')||l.includes('bike')||l.includes('motor'))return '🚗';
+  if(l.includes('comput')||l.includes(' it ')||l.includes('laptop'))return '💻';
+  if(l.includes('electr'))return '📱';
+  if(l.includes('audio')||l.includes('headphone')||l.includes('speaker'))return '🎧';
+  if(l.includes('book')||l.includes('toy')||l.includes('stationery'))return '📚';
+  if(l.includes('sport')||l.includes('fitness')||l.includes('gym'))return '⚽';
+  if(l.includes('grocery')||l.includes('food')||l.includes('gourmet'))return '🛒';
+  if(l.includes('luggage')||l.includes('bag')||l.includes('travel'))return '🧳';
+  if(l.includes('health')||l.includes('supplement')||l.includes('pharma')||l.includes('wellness'))return '💊';
+  if(l.includes('personal care'))return '💇';
+  if(l.includes('decor'))return '🖼️';
+  if(l.includes('home'))return '🏠';
+  return '🏷️';
+}
+function catLabel(c){ return CAT_SHORT[c]||c; }
+
 function buildSidebar(){
   const allCats=[...new Set(ALL_DEALS.map(d=>d.category).filter(Boolean))];
   const orderedCats=[...CATEGORY_ORDER.filter(c=>allCats.includes(c)),...allCats.filter(c=>!CATEGORY_ORDER.includes(c)).sort()];
@@ -960,7 +999,8 @@ function buildSidebar(){
   topbar.querySelectorAll('.cat-pill:not([data-cat="all"])').forEach(p=>p.remove());
   const sep=topbar.querySelector('.filter-sep');
   orderedCats.forEach(cat=>{
-    const p=document.createElement('button');p.className='cat-pill';p.dataset.cat=cat;p.textContent=cat;
+    const p=document.createElement('button');p.className='cat-pill';p.dataset.cat=cat;
+    p.innerHTML=`<span class="cat-ico">${catIcon(cat)}</span>${catLabel(cat)}`;
     p.onclick=()=>setCat(cat);topbar.insertBefore(p,sep);
   });
   renderBrandList('');
