@@ -817,7 +817,8 @@ function mapRow(r){
     retailer_rates: [],
 
     category     : r.category_group || 'Other',
-    deal_order   : num(r.rank) || 999,
+    deal_order   : (r.rank!=='' && !isNaN(num(r.rank))) ? num(r.rank) : 999,
+    depth        : num(r.depth),
     availability : bool(r.stock_check) && /in\s*stock/i.test(r.latest_availability||'In Stock'),
     quantity     : num(r.quantity) || 1,
     price_dropped: bool(r.price_dropped),
@@ -944,7 +945,7 @@ function getFiltered(){
   else if(activeSort==='price_asc')deals.sort((a,b)=>a.final_deal_price-b.final_deal_price);
   else if(activeSort==='price_desc')deals.sort((a,b)=>b.final_deal_price-a.final_deal_price);
   else if(activeSort==='newest')deals.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-  else deals.sort((a,b)=>(a.deal_order||999)-(b.deal_order||999));
+  else deals.sort((a,b)=>((a.deal_order||999)-(b.deal_order||999)) || ((b.depth||0)-(a.depth||0)));
   return deals;
 }
 
