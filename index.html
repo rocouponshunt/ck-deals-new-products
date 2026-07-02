@@ -850,11 +850,14 @@ function priceWaterfall(d, cbValOverride){
   const rule = d.shipping_rule==='no' ? 'no' : 'yes';
   const cbVal= (cbValOverride!==undefined && cbValOverride!==null) ? cbValOverride : num(d.cashback);
   const cbBase = rule==='yes' ? ap + sf : ap;              // cashback base
-  const cbAmt  = d.cashback_type==='percent' ? Math.round(cbBase*(cbVal/100)) : Math.round(cbVal);
+  let   cbAmt  = d.cashback_type==='percent' ? Math.round(cbBase*(cbVal/100)) : Math.round(cbVal);
+  const cap    = num(d.cb_cap);
+  const capped = cap>0 && cbAmt>cap;
+  if(capped) cbAmt = cap;                                   // enforce max ₹ cashback
   const pAfterCb = cbBase - cbAmt;
   const final = rule==='no' ? pAfterCb + sf : pAfterCb;
   const discPct = num(d.mrp)>0 ? Math.max(0, Math.round((num(d.mrp)-final)/num(d.mrp)*100)) : 0;
-  return {cd, ac, pdAmt:pd, ap, sf, rule, cbAmt, cbVal, final:Math.round(final), discPct};
+  return {cd, ac, pdAmt:pd, ap, sf, rule, cbAmt, cbVal, cap, capped, final:Math.round(final), discPct};
 }
 
 // ── Map ONE sheet row → the internal "deal" shape the page renders ──
@@ -896,6 +899,7 @@ function mapRow(r){
     groupid      : 'A',
     cashback     : num(r.cb_rate),
     cashback_type: r.cb_rate_type ? rtype(r.cb_rate_type) : 'percent',
+    cb_cap       : num(r.cb_cap),   // max ₹ cashback (0 = uncapped)
     store_type   : r.store_type || 'Cashback',
 
     // ── Coupon ──
@@ -943,13 +947,15 @@ async function fetchDeals(){
   }
   const rows = parseCSV(text);
 
-  const seen = new Set();
-  ALL_DEALS = rows
+  // de-dupe by product_id, keeping the LOWEST final price (best deal for the user)
+  const byId = new Map();
+  rows
     .map(mapRow)
     .filter(d => d.id)                                   // must have a product_id
     .filter(d => d._valid && d._isDeal && !d._hidden)    // visibility gates
     .filter(d => d.availability !== false)               // in stock only
-    .filter(d => { if(seen.has(d.id)) return false; seen.add(d.id); return true; }); // de-dupe by product_id
+    .forEach(d => { const e = byId.get(d.id); if(!e || d.final_deal_price < e.final_deal_price) byId.set(d.id, d); });
+  ALL_DEALS = [...byId.values()];
 }
 
 // Build the category order from whatever the sheet contains, keeping a sensible priority
@@ -1347,7 +1353,7 @@ function renderDetail(deal){
     if(w.cd>0)r+=`<div class="wf-r d"><span>Coupon (${deal.coupon_code||''})</span><span class="wv">−₹${fmt(w.cd)}</span></div>`;
     if(w.pdAmt>0)r+=`<div class="wf-r d"><span>Prepaid discount</span><span class="wv">−₹${fmt(w.pdAmt)}</span></div>`;
     if(w.sf>0)r+=`<div class="wf-r a"><span>+ Shipping</span><span class="wv">₹${fmt(w.sf)}</span></div>`;
-    if(w.cbAmt>0)r+=`<div class="wf-r d"><span>CashKaro ${cbRawType==='percent'?w.cbVal+'%':'₹'+w.cbVal} ${isRewards?'Rewards':'Cashback'}</span><span class="wv">−₹${fmt(w.cbAmt)}</span></div>`;
+    if(w.cbAmt>0)r+=`<div class="wf-r d"><span>CashKaro ${cbRawType==='percent'?w.cbVal+'%':'₹'+w.cbVal} ${isRewards?'Rewards':'Cashback'}${w.capped?` (max ₹${fmt(w.cap)})`:''}</span><span class="wv">−₹${fmt(w.cbAmt)}</span></div>`;
     r+=`<hr class="wf-hr"><div class="wf-r tot"><span>Final deal price${qtyLabel}</span><span class="wv">₹${fmt(w.final)}</span></div>`;
     if(qty>1)r+=`<div class="wf-r" style="color:var(--green);font-weight:600"><span>Per unit</span><span class="wv">₹${fmt(perUnit)}</span></div>`;
     r+=`<div class="wf-r sv"><span>🎉 You save ${w.discPct}% vs MRP</span></div>`;
