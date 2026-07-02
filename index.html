@@ -424,6 +424,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .wf-inline-toggle:hover{opacity:.8}
 .wf-inline-body{display:none;margin-top:8px;background:var(--bg3);border-radius:10px;padding:12px;font-size:12px;font-family:var(--mono)}
 .wf-inline-body.open{display:block}
+.tnc-list{margin:0;padding-left:18px;font-size:13px;color:var(--text2);line-height:1.55}
+.tnc-list li{margin-bottom:6px}
+.tnc-list .tnc-more{display:none}
+.tnc-list.show-all .tnc-more{display:list-item}
+.tnc-viewall{margin-top:10px;background:transparent;border:1.5px solid var(--border);color:var(--text);font-weight:600;font-size:12px;padding:7px 14px;border-radius:9px;cursor:pointer;font-family:var(--font);transition:all .15s}
+.tnc-viewall:hover{background:var(--bg3)}
 .wf-r{display:flex;justify-content:space-between;padding:3px 0;color:var(--text2)}
 .wf-r.s .wv{text-decoration:line-through;color:var(--text3)}
 .wf-r.d .wv{color:var(--green);font-weight:600}
@@ -1009,6 +1015,24 @@ function pickTnc(SD){
   const app=SD.tnc_app||'', desk=SD.tnc_desktop||'', legacy=SD.tnc||'';
   return safeHtml((IS_MOBILE ? (app||desk) : (desk||app)) || legacy);
 }
+// Split a T&C blob into individual points (handles <li>, newlines, bullets, ; and "1." numbering)
+function tncList(SD){
+  const app=SD.tnc_app||'', desk=SD.tnc_desktop||'', legacy=SD.tnc||'';
+  const raw=((IS_MOBILE ? (app||desk) : (desk||app)) || legacy || '').trim();
+  if(!raw) return [];
+  let parts;
+  if(/<li[\s>]/i.test(raw)) parts=raw.split(/<li[^>]*>/i).map(s=>s.replace(/<\/li>[\s\S]*$/i,'').replace(/<[^>]+>/g,''));
+  else parts=raw.split(/\r?\n|•|·|;|\s*\d+\.\s+/);
+  return parts.map(s=>s.replace(/\s+/g,' ').trim()).filter(Boolean);
+}
+// Render top-3 T&Cs with a "View all" toggle
+function tncBlock(SD){
+  const items=tncList(SD);
+  if(!items.length) return '<span style="color:var(--text3)">Standard CashKaro T&Cs apply.</span>';
+  const lis=items.map((t,i)=>`<li class="${i>=3?'tnc-more':''}">${safeHtml(t)}</li>`).join('');
+  const btn=items.length>3?`<button class="tnc-viewall" onclick="this.previousElementSibling.classList.add('show-all');this.remove()">View all T&Cs (${items.length})</button>`:'';
+  return `<ul class="tnc-list">${lis}</ul>${btn}`;
+}
 
 // ── Sidebar ──────────────────────────────────────────────────────
 const CATEGORY_ICONS={
@@ -1383,7 +1407,6 @@ function renderDetail(deal){
   let ratesHtml='';
   if(rates.length)ratesHtml=`<div style="margin-bottom:8px;font-size:12px;color:var(--text3);font-weight:600">Multiple rates:</div><table class="rates-table"><thead><tr><th>User type</th><th>Cashback</th></tr></thead><tbody>${rates.map(r=>`<tr><td>${r.rate_label}</td><td>${r.cashback}${r.cashback_type==='percent'?'%':'₹'}</td></tr>`).join('')}</tbody></table>`;
 
-  const tc=pickTnc(SD);
   const disc=wNew.discPct;
   const trackingSpeed=SD.tracking_speed || store.tracking_speed || '—';
   const confirmDays=SD.confirmation_days || store.expected_confirmation_days || '—';
@@ -1464,12 +1487,12 @@ function renderDetail(deal){
       ${perUnitLine}
 
             </div>        ${deal.coupon_code ? `      <div style="margin-top:12px;padding:6px 14px; width: auto; background:#fff;border:1.5px dashed #dddddd;border-radius:10px;display:inline-block">         <div style="float: left; margin-right: 12px;">           <div class="coupon-code" style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#92400e;     margin-top: 6px; margin-bottom:4px">Code: <span>${deal.coupon_code}</span></div>           </div>         <button onclick="navigator.clipboard.writeText('${deal.coupon_code}').then(()=>{this.textContent='Copied!';this.style.background='#16a34a';setTimeout(()=>{this.textContent='Copy';this.style.background='#f59e0b';},2000)})" style="background:#f59e0b;color:#fff;border:none;padding:0px 6px;border-radius:8px;font-family:var(--font);font-size:24px;font-weight:700;cursor:pointer;flex-shrink:0;transition:all .15s">&#x2398; </button>       </div>` : ''}       <div class="wf-inline-toggle" onclick="var b=this.nextElementSibling;b.classList.toggle('open');this.querySelector('.wf-arr').textContent=b.classList.contains('open')?'▴':'▾'">
-        <span>💡 How is this price calculated?</span><span class="wf-arr">▾</span>
+        <span>💡 How is this price calculated?</span><span class="wf-arr">▴</span>
       </div>
 	  
 	  
 	  
-      <div class="wf-inline-body" id="wf-body">${buildWfRows(wNew)}</div>
+      <div class="wf-inline-body open" id="wf-body">${buildWfRows(wNew)}</div>
 	  
     </div>
     <div class="inline-cta-wrap">
@@ -1495,7 +1518,7 @@ function renderDetail(deal){
         </div>
         ${ratesHtml}
       </div>
-      <div class="tab-content" id="tab-terms">${tc||'<span style="color:var(--text3)">Standard CashKaro T&Cs apply.</span>'}</div>
+      <div class="tab-content" id="tab-terms">${tncBlock(SD)}</div>
     </div>`;
 
   // Floating CTA
