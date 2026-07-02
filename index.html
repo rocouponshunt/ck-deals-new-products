@@ -789,6 +789,19 @@ function imgFallback(img){
 }
 function viewingCount(id){let h=0;for(let i=0;i<(id||'').length;i++)h=(h*31+id.charCodeAt(i))&0xfffffff;return 12+(h%180)+Math.floor(Math.random()*6);}
 function hashStr(s){let h=0;s=String(s||'x');for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0;}return Math.abs(h)||1;}
+// Shopsy/Flipkart names are keyword-stuffed. Trim to a clean display title:
+// cut at the first heavy delimiter (| ( [ , – -) once the head is substantial,
+// then hard-cap at ~80 chars on a word boundary.
+function cleanName(s){
+  s=(s||'').replace(/\s+/g,' ').trim();
+  if(!s) return s;
+  let cut=s.length;
+  ['|','(','[',' – ',' - ','/'].forEach(d=>{const i=s.indexOf(d); if(i>=25 && i<cut) cut=i;});
+  const ci=s.indexOf(',',25); if(ci>=25 && ci<cut) cut=ci;
+  let out=s.slice(0,cut).trim().replace(/[,\-–|/]+$/,'').trim();
+  if(out.length>80) out=out.slice(0,80).replace(/\s+\S*$/,'').trim()+'…';
+  return out||s.slice(0,80);
+}
 // Per-deal countdown: distinct duration + phase seeded by the deal id, so every
 // deal shows a different timer. It loops forever (auto-rotates when it hits 0) —
 // purely cosmetic urgency; a deal only disappears when removed from the sheet.
@@ -1182,7 +1195,7 @@ function makeCard(deal,small){
 	   <div class="card-viewing"><span class="card-viewing-dot"></span><span>${vc} viewing</span></div>
 	   
 	   </div>
-      <div class="card-name">${deal.product_name||''}</div>
+      <div class="card-name">${cleanName(deal.product_name)}</div>
       <div class="card-prices">
         <span class="card-mrp">₹${fmt(mrp)}</span>
         <span class="card-price">₹${fmt(calculatedFinal)}</span>
@@ -1236,7 +1249,7 @@ function showSuggestions(q){
   const matches=ALL_DEALS.filter(d=>(d.product_name||'').toLowerCase().includes(ql)||(d.category||'').toLowerCase().includes(ql)).sort((a,b)=>(a.deal_order||999)-(b.deal_order||999)).slice(0,3);
   const el=document.getElementById('search-suggestions');
   if(!matches.length){el.style.display='none';return;}
-  el.innerHTML=matches.map(d=>{const imgs=getImages(d);return`<div class="suggestion-item" onclick="showDetail('${d.id}')"><div class="sug-img-wrap">${imgs[0]?`<img class="sug-img" src="${resizedUrl(imgs[0],80)}" onerror="this.style.display='none'">`:'🛍'}</div><div class="sug-info"><div class="sug-name">${d.product_name||''}</div><div class="sug-price">${d.report_storename} · ₹${fmt(Math.round(d.final_deal_price))}</div></div><span class="sug-badge">${Math.round(d.discount_percent||0)}% OFF</span></div>`;}).join('');
+  el.innerHTML=matches.map(d=>{const imgs=getImages(d);return`<div class="suggestion-item" onclick="showDetail('${d.id}')"><div class="sug-img-wrap">${imgs[0]?`<img class="sug-img" src="${resizedUrl(imgs[0],80)}" onerror="this.style.display='none'">`:'🛍'}</div><div class="sug-info"><div class="sug-name">${cleanName(d.product_name)}</div><div class="sug-price">${d.report_storename} · ₹${fmt(Math.round(d.final_deal_price))}</div></div><span class="sug-badge">${Math.round(d.discount_percent||0)}% OFF</span></div>`;}).join('');
   el.style.display='block';
 }
 document.getElementById('sort-select').onchange=function(){activeSort=this.value;renderDeals();};
@@ -1439,7 +1452,7 @@ function renderDetail(deal){
       <span style="font-family:var(--font);font-size:13px; margin-bottom: 10px; width: 100%; font-weight:700;color:var(--text2)">${deal.report_storename||''}</span>
    
     </div>
-    <div class="detail-name">${deal.product_name||''}${qtyBadgeDetail}</div>
+    <div class="detail-name">${cleanName(deal.product_name)}${qtyBadgeDetail}</div>
     ${userTabsHtml}
     <div class="detail-price-block">
       
@@ -1566,7 +1579,7 @@ function renderTrending(){
         ${disc>0?`<div class="trending-disc">${disc}% OFF</div>`:''}
       </div>
       <div class="trending-info">
-        <div class="trending-name">${deal.product_name||''}</div>
+        <div class="trending-name">${cleanName(deal.product_name)}</div>
         <div class="trending-price">₹${fmt(price)}</div>
       </div>`;
     card.onclick=()=>showDetail(deal.id);
