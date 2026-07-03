@@ -637,23 +637,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
       • a product_id removed from the sheet → drops off the page
       • a changed price in the sheet → updates on the page
    ═══════════════════════════════════════════════════════════════════ */
-const SHEET_ID        = '1w6t1YSbGF5fy_ZVHIZ4Er6jxquUY_SIsPHL-8sVoFpo';   // from https://docs.google.com/spreadsheets/d/<THIS>/edit
-const DEALS_TAB       = 'CK-Deals';                   // tab holding the products (exact, case-sensitive)
-const STORE_DATA_TAB  = 'Store-Data';                 // tab holding per-store info
+/* ── DATA SOURCE: Lovable backend JSON API ──────────────────────────
+   The page reads live deals + store metadata from the Krazy Deals backend.
+   Change API_BASE only if the app's domain changes. */
+const API_BASE       = 'https://krazy-deals.lovable.app';
+const DEALS_URL      = API_BASE + '/api/public/deals';    // live merged deals (auto + manual), JSON
+const STORE_DATA_URL = API_BASE + '/api/public/stores';   // per-store metadata, JSON
 const AUTO_REFRESH_MIN = 10;   // re-pull every N minutes (0 = off)
-
-/* Reads any tab BY NAME from the same spreadsheet. REQUIREMENT: the sheet
-   must be shared → "Anyone with the link" → Viewer (so both tabs are readable).
-   If you'd rather keep explicit "Publish to web" CSV links, paste them into the
-   *_OVERRIDE constants below and they take precedence. */
-const gvizCsv = tab => (SHEET_ID && !SHEET_ID.startsWith('PASTE_'))
-  ? `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`
-  : '';
-const SHEET_CSV_URL_OVERRIDE            = '';   // optional: CK-Deals published-CSV link
-const SHEET_STORE_DATA_CSV_URL_OVERRIDE = '';   // optional: Store-Data published-CSV link
-
-const DEALS_URL      = (SHEET_CSV_URL_OVERRIDE            && !SHEET_CSV_URL_OVERRIDE.startsWith('PASTE_'))            ? SHEET_CSV_URL_OVERRIDE            : gvizCsv(DEALS_TAB);
-const STORE_DATA_URL = (SHEET_STORE_DATA_CSV_URL_OVERRIDE && !SHEET_STORE_DATA_CSV_URL_OVERRIDE.startsWith('PASTE_')) ? SHEET_STORE_DATA_CSV_URL_OVERRIDE : gvizCsv(STORE_DATA_TAB);
 
 /* ── STORE-LEVEL CONTENT (per retailer, from the "Store-Data" tab) ───
    Columns read: storeid | store_name | store_type | tracking_speed |
@@ -956,18 +946,18 @@ function mapRow(r){
 
 // ── Fetch — no cache, always fresh from the published sheet ─────
 async function fetchDeals(){
-  if(!DEALS_URL){
-    throw new Error('No data source set. Add your SHEET_ID (or a published-CSV override) at the top of the script.');
-  }
+  if(!DEALS_URL) throw new Error('No data source set.');
   const bust = (DEALS_URL.includes('?')?'&':'?') + 'cb=' + Date.now();
   const res  = await fetch(DEALS_URL + bust, {cache:'no-store'});
-  const text = await res.text();
-  if(text.trim().startsWith('<')){
-    throw new Error('The sheet is not readable. Share it as "Anyone with the link → Viewer" (or use a published-CSV override).');
-  }
-  const rows = parseCSV(text);
+  if(!res.ok) throw new Error('Deals API returned '+res.status);
+  const data = await res.json();
+  // The API already applies visibility gates + best-price dedupe and returns only
+  // LIVE deals, so default the row-level gate fields to live/in-stock before mapping.
+  const rows = (Array.isArray(data) ? data : (data.deals||data.data||[])).map(r => ({
+    valid:'yes', deal_or_no_deal:'Deal', stock_check:true, latest_availability:'In Stock', ...r
+  }));
 
-  // de-dupe by product_id, keeping the LOWEST final price (best deal for the user)
+  // de-dupe by product_id, keeping the LOWEST final price (belt-and-suspenders)
   const byId = new Map();
   rows
     .map(mapRow)
@@ -987,7 +977,9 @@ async function fetchStoreData(){
   try{
     const bust=(STORE_DATA_URL.includes('?')?'&':'?')+'cb='+Date.now();
     const res=await fetch(STORE_DATA_URL+bust,{cache:'no-store'});
-    const rows=parseCSV(await res.text());
+    if(!res.ok) throw new Error('Stores API '+res.status);
+    const data=await res.json();
+    const rows=Array.isArray(data)?data:(data.stores||data.data||[]);
     const map={};
     rows.forEach(r=>{
       const sid=String(r.storeid||'').replace(/[,\s]/g,'');
@@ -996,7 +988,7 @@ async function fetchStoreData(){
       if(sname) map[sname]=r;
     });
     STORE_DATA=map;
-  }catch(e){ console.warn('Store-Data tab not loaded',e); }
+  }catch(e){ console.warn('Store data not loaded',e); }
 }
 
 // Find the Store-Data row for a deal: match by storeid first, then store name
