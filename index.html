@@ -283,7 +283,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 #floating-cta-btn {
     display: block;
     width: 100%;
-    background: var(--accent);
+    background: #f59e0b;
     color: #fff;
     border: none;
     padding: 17px;
@@ -295,7 +295,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
     text-decoration: none;
     text-align: center;
     transition: all .15s;
-    box-shadow: 0 6px 20px rgba(24,34,58,.28);
+    box-shadow: 0 6px 20px rgba(245,158,11,.28);
 }
 
 @media(max-width:900px){
@@ -413,16 +413,17 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
     justify-content: space-between;
     cursor: pointer;
     padding: 10px 0 0;
-    font-size: 12px;
+    font-size: 13px;
     color: var(--accent);
     user-select: none;
     font-weight: 600;
+    font-family: var(--font);
     border-top: 1px solid var(--border);
     margin-top: 10px;
     margin-bottom: 10px;
 }
 .wf-inline-toggle:hover{opacity:.8}
-.wf-inline-body{display:none;margin-top:8px;background:var(--bg3);border-radius:10px;padding:12px;font-size:12px;font-family:var(--mono)}
+.wf-inline-body{display:none;margin-top:8px;background:var(--bg3);border-radius:10px;padding:12px;font-size:12.5px;font-family:var(--font);font-weight:500}
 .wf-inline-body.open{display:block}
 .tnc-list{margin:0;padding-left:18px;font-size:13px;color:var(--text2);line-height:1.55}
 .tnc-list li{margin-bottom:6px}
@@ -438,8 +439,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .wf-r.tot{color:var(--text);font-weight:700}
 .wf-r.tot .wv{color:var(--accent);font-size:14px}
 .wf-r.sv{color:var(--green);font-size:11px}
-.cta-btn{display:block;width:100%;background:var(--accent);color:#fff;border:none;padding:15px;border-radius:14px;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;text-decoration:none;text-align:center;transition:all .15s;box-shadow:0 6px 20px rgba(24,34,58,.22);margin-bottom:10px}
-.cta-btn:hover{transform:translateY(-1px);background:var(--accent2)}
+.cta-btn{display:block;width:100%;background:#f59e0b;color:#fff;border:none;padding:15px;border-radius:14px;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;text-decoration:none;text-align:center;transition:all .15s;box-shadow:0 6px 20px rgba(245,158,11,.28);margin-bottom:10px}
+.cta-btn:hover{transform:translateY(-1px);background:#ea8f08}
 .cta-sub {
     text-align: center;
     font-size: 11px;
@@ -1036,39 +1037,49 @@ function tncBlock(SD){
 
 // ── Sidebar ──────────────────────────────────────────────────────
 const CATEGORY_ICONS={
-  'Beauty':'💄','Apparel':'👕','Automotive':'🚗','Home':'🏠','Home Decor':'🖼️',
-  'Kitchenware':'🍴','Cookware':'🍳','Home & Kitchen Appliances':'🔌',
-  'Computer & IT Accessories':'💻','Electronics':'📱','Audio':'🎧',
-  'Books & Toys':'📚','Sports':'⚽','Grocery':'🛒','Luggage':'🧳',
-  'Baby Products':'🍼','Personal Care Appliances':'💇',
-  'Health & Personal Care Supplements':'💊'
+  'Grocery':'🛒','Apparel':'👕','Beauty':'💄','Home':'🏠','Sports':'⚽',
+  'Kitchenware':'🍴','Electronics':'📺','Home Decor':'🖼️','Large Appliances':'🧺',
+  'Computer & IT Accessories':'⌨️','Health & Personal Care Supplements':'💊',
+  'Home & Kitchen Appliances':'🔌','Books & Toys':'📚','Handbags & Accessories':'👜',
+  'Automotive':'🚗','Baby Products':'🍼','Shoes':'👟','Pet Care':'🐾',
+  'Cookware':'🍳','Watches':'⌚','Personal Care Appliances':'💇','Audio':'🎧',
+  'Luggage':'🧳','Jewellery':'💍','Tablets':'💻','Mobile Phones':'📱','Smartwatches':'⌚'
 };
 const CAT_SHORT={
   'Computer & IT Accessories':'Computers','Home & Kitchen Appliances':'Appliances',
   'Health & Personal Care Supplements':'Health','Personal Care Appliances':'Personal Care',
-  'Baby Products':'Baby'
+  'Baby Products':'Baby','Handbags & Accessories':'Handbags'
 };
 function catIcon(c){
   if(CATEGORY_ICONS[c])return CATEGORY_ICONS[c];
   const l=(c||'').toLowerCase();
-  if(l.includes('beauty')||l.includes('cosmet'))return '💄';
-  if(l.includes('baby'))return '🍼';
+  if(l.includes('beauty')||l.includes('cosmet')||l.includes('makeup'))return '💄';
+  if(l.includes('baby')||l.includes('infant'))return '🍼';
   if(l.includes('kitchen')&&l.includes('appliance'))return '🔌';
+  if(l.includes('large appliance')||l.includes('washing')||l.includes('refriger')||l.includes('fridge'))return '🧺';
   if(l.includes('cook'))return '🍳';
-  if(l.includes('kitchen'))return '🍴';
-  if(l.includes('cloth')||l.includes('apparel')||l.includes('fashion')||l.includes('footwear'))return '👕';
-  if(l.includes('auto')||l.includes('car')||l.includes('bike')||l.includes('motor'))return '🚗';
-  if(l.includes('comput')||l.includes(' it ')||l.includes('laptop'))return '💻';
-  if(l.includes('electr'))return '📱';
-  if(l.includes('audio')||l.includes('headphone')||l.includes('speaker'))return '🎧';
-  if(l.includes('book')||l.includes('toy')||l.includes('stationery'))return '📚';
-  if(l.includes('sport')||l.includes('fitness')||l.includes('gym'))return '⚽';
-  if(l.includes('grocery')||l.includes('food')||l.includes('gourmet'))return '🛒';
-  if(l.includes('luggage')||l.includes('bag')||l.includes('travel'))return '🧳';
-  if(l.includes('health')||l.includes('supplement')||l.includes('pharma')||l.includes('wellness'))return '💊';
-  if(l.includes('personal care'))return '💇';
-  if(l.includes('decor'))return '🖼️';
-  if(l.includes('home'))return '🏠';
+  if(l.includes('kitchen')||l.includes('utensil'))return '🍴';
+  if(l.includes('shoe')||l.includes('footwear')||l.includes('sneaker'))return '👟';
+  if(l.includes('cloth')||l.includes('apparel')||l.includes('fashion')||l.includes('wear'))return '👕';
+  if(l.includes('handbag')||l.includes('purse')||l.includes('wallet')||l.includes('accessor'))return '👜';
+  if(l.includes('luggage')||l.includes('backpack')||l.includes('travel')||l.includes('bag'))return '🧳';
+  if(l.includes('smartwatch')||l.includes('smart watch')||l.includes('wearable'))return '⌚';
+  if(l.includes('watch'))return '⌚';
+  if(l.includes('jewel')||l.includes('ring')||l.includes('earring')||l.includes('necklace'))return '💍';
+  if(l.includes('auto')||l.includes('car')||l.includes('bike')||l.includes('motor')||l.includes('vehicle'))return '🚗';
+  if(l.includes('tablet')||l.includes('ipad'))return '💻';
+  if(l.includes('comput')||l.includes(' it ')||l.includes('laptop')||l.includes('keyboard')||l.includes('mouse'))return '⌨️';
+  if(l.includes('mobile')||l.includes('phone')||l.includes('smartphone'))return '📱';
+  if(l.includes('audio')||l.includes('headphone')||l.includes('earphone')||l.includes('speaker'))return '🎧';
+  if(l.includes('electr')||l.includes('gadget')||l.includes('camera')||l.includes(' tv'))return '📺';
+  if(l.includes('book')||l.includes('toy')||l.includes('stationery')||l.includes('game'))return '📚';
+  if(l.includes('sport')||l.includes('fitness')||l.includes('gym')||l.includes('outdoor'))return '⚽';
+  if(l.includes('grocery')||l.includes('food')||l.includes('gourmet')||l.includes('snack'))return '🛒';
+  if(l.includes('pet')||l.includes('dog')||l.includes('cat'))return '🐾';
+  if(l.includes('health')||l.includes('supplement')||l.includes('pharma')||l.includes('wellness')||l.includes('nutrition'))return '💊';
+  if(l.includes('personal care')||l.includes('grooming')||l.includes('trimmer')||l.includes('shaver'))return '💇';
+  if(l.includes('decor')||l.includes('furnish'))return '🖼️';
+  if(l.includes('home')||l.includes('furniture'))return '🏠';
   return '🏷️';
 }
 function catLabel(c){ return CAT_SHORT[c]||c; }
