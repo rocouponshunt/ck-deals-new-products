@@ -31,6 +31,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 #search{width:100%;background:var(--bg2);border:1.5px solid var(--border);color:var(--text);padding:11px 16px 11px 42px;border-radius:999px;font-family:var(--body);font-size:14px;outline:none;transition:all .15s}
 #search:focus{border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(24,34,58,.08)}
 #search::placeholder{color:var(--text3)}
+#search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;background:var(--bg3);color:var(--text2);font-size:12px;display:none;align-items:center;justify-content:center;cursor:pointer;user-select:none;transition:background .15s,color .15s}
+#search-clear:hover{background:var(--accent);color:#fff}
 #search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
 #search-bar{background:#fff;border-bottom:1px solid var(--border);padding:9px 16px}
 #search-bar #search-wrap{max-width:1400px;margin:0 auto}
@@ -57,6 +59,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .cat-pill{flex-shrink:0;background:transparent;border:none;color:var(--text2);padding:0;cursor:pointer;font-family:var(--body);font-size:11px;font-weight:600;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:6px;width:64px;text-align:center;line-height:1.15}
 .cat-ico{width:54px;height:54px;border-radius:50%;background:var(--bg2);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:24px;line-height:1;box-shadow:var(--shadow);transition:all .18s}
 .cat-pill:hover .cat-ico{transform:translateY(-2px);border-color:var(--accent2)}
+.cat-ico-img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
 .cat-pill:hover{color:var(--text)}
 .cat-pill.active{background:transparent;border:none;color:var(--text)}
 .cat-pill.active .cat-ico{background:var(--accent);border-color:var(--accent)}
@@ -587,6 +590,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
       <div id="search-wrap">
         <span id="search-icon">🔍</span>
         <input id="search" type="text" placeholder="Search products by name…" autocomplete="off">
+        <span id="search-clear" onclick="clearSearch(true)" title="Clear">✕</span>
         <div id="search-suggestions"></div>
       </div>
     </div>
@@ -666,6 +670,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 const API_BASE       = 'https://krazy-deals.lovable.app';
 const DEALS_URL      = API_BASE + '/api/public/deals';    // live merged deals (auto + manual), JSON
 const STORE_DATA_URL = API_BASE + '/api/public/stores';   // per-store metadata, JSON
+const CATEGORIES_URL = API_BASE + '/api/public/categories'; // category order + icon images, JSON
 const AUTO_REFRESH_MIN = 10;   // re-pull every N minutes (0 = off)
 
 /* ── STORE-LEVEL CONTENT (per retailer, from the "Store-Data" tab) ───
@@ -689,6 +694,7 @@ let STORE_DATA = {};   // keyed by storeid AND by lowercased store_name
 const TRACKING_URL_TEMPLATE = 'https://tracking.cashkaro.com/visitretailer/{storeid}?id={userid}&dl={product_url}';
 
 let ALL_DEALS = [], GLOBAL_TIMER = 12, IMAGE_ROTATION_MS = 2000, CATEGORY_ORDER = [];
+let CAT_ICON_URL = {};   // {category name: admin-set icon image URL}
 let CTA_LABEL = 'View Deal', SIMILAR_DEALS_LABEL = 'Similar Deals', BANNER_IMAGE_URL = '';
 
 // Dynamic userid from URL param — accepts userid, userId, user_id. No fallback — null if not present.
@@ -1000,10 +1006,31 @@ async function fetchDeals(){
     .filter(d => d.availability !== false)               // in stock only
     .forEach(d => { const e = byId.get(d.id); if(!e || d.final_deal_price < e.final_deal_price) byId.set(d.id, d); });
   ALL_DEALS = [...byId.values()];
+  // Search index built once: one lowercased blob + word list per deal (fast, smart search)
+  ALL_DEALS.forEach(d=>{
+    d._search=((d.product_name||'')+' '+(d.report_storename||'')+' '+(d.seller||'')+' '+(d.category||'')).toLowerCase();
+    d._words=d._search.split(/[^a-z0-9]+/).filter(Boolean);
+  });
 }
 
 // Build the category order from whatever the sheet contains, keeping a sensible priority
 CATEGORY_ORDER = [];
+
+// ── Fetch categories → order (display_order) + icon images (icon_url) ──
+async function fetchCategories(){
+  if(!CATEGORIES_URL) return;
+  try{
+    const bust=(CATEGORIES_URL.includes('?')?'&':'?')+'cb='+Date.now();
+    const res=await fetch(CATEGORIES_URL+bust,{cache:'no-store'});
+    if(!res.ok) throw new Error('Categories API '+res.status);
+    const data=await res.json();
+    const rows=Array.isArray(data)?data:(data.categories||data.data||[]);
+    rows.sort((a,b)=>((a.display_order??999)-(b.display_order??999)));
+    CATEGORY_ORDER=rows.map(r=>r.name).filter(Boolean);
+    CAT_ICON_URL={};
+    rows.forEach(r=>{ if(r.name && r.icon_url) CAT_ICON_URL[r.name]=r.icon_url; });
+  }catch(e){ console.warn('Categories not loaded',e); }
+}
 
 // ── Fetch the Store-Data tab → map keyed by storeid and by store_name ──
 async function fetchStoreData(){
@@ -1118,7 +1145,11 @@ function buildSidebar(){
   const sep=topbar.querySelector('.filter-sep');
   orderedCats.forEach(cat=>{
     const p=document.createElement('button');p.className='cat-pill';p.dataset.cat=cat;
-    p.innerHTML=`<span class="cat-ico">${catIcon(cat)}</span>${catLabel(cat)}`;
+    const icoUrl=CAT_ICON_URL[cat];
+    const ico=icoUrl
+      ? `<span class="cat-ico"><img class="cat-ico-img" src="${icoUrl}" alt="" onerror="this.parentElement.textContent='${catIcon(cat)}'"></span>`
+      : `<span class="cat-ico">${catIcon(cat)}</span>`;
+    p.innerHTML=`${ico}${catLabel(cat)}`;
     p.onclick=()=>setCat(cat);topbar.insertBefore(p,sep);
   });
   renderBrandList('');
@@ -1165,8 +1196,16 @@ function getFiltered(){
   if(activeBrandFilter)deals=deals.filter(d=>d.report_storename===activeBrandFilter);
   if(priceMin)deals=deals.filter(d=>d.final_deal_price>=priceMin);
   if(priceMax)deals=deals.filter(d=>d.final_deal_price<=priceMax);
-  if(searchQuery){const q=searchQuery.toLowerCase();deals=deals.filter(d=>(d.product_name||'').toLowerCase().includes(q)||(d.category||'').toLowerCase().includes(q)||(d.report_storename||'').toLowerCase().includes(q));}
-  if(activeSort==='discount')deals.sort((a,b)=>b.discount_percent-a.discount_percent);
+  if(searchQuery){
+    const toks=searchTokenize(searchQuery);
+    if(toks.length){
+      deals=deals.filter(d=>{const sc=searchScore(d,toks);d.__sc=sc;return sc>=0;});
+    }
+  }
+  if(searchQuery && searchTokenize(searchQuery).length){
+    deals.sort((a,b)=>(b.__sc||0)-(a.__sc||0) || ((a.deal_order||999)-(b.deal_order||999)));  // relevance first when searching
+  }
+  else if(activeSort==='discount')deals.sort((a,b)=>b.discount_percent-a.discount_percent);
   else if(activeSort==='price_asc')deals.sort((a,b)=>a.final_deal_price-b.final_deal_price);
   else if(activeSort==='price_desc')deals.sort((a,b)=>b.final_deal_price-a.final_deal_price);
   else if(activeSort==='newest')deals.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
@@ -1300,20 +1339,90 @@ function makeCard(deal,small,shortTimer){
 function showSkeletons(){document.getElementById('skeletons').innerHTML=Array(8).fill(0).map(()=>`<div class="skel-card"><div class="skel-img skeleton"></div><div class="skel-body"><div class="skel-line skeleton" style="width:45%;height:8px"></div><div class="skel-line skeleton" style="width:90%"></div><div class="skel-line skeleton" style="width:65%"></div><div class="skel-line skeleton" style="width:40%;height:16px;margin-top:4px"></div></div></div>`).join('');}
 function hideSkeletons(){document.getElementById('skeletons').innerHTML='';}
 
-// ── Search ───────────────────────────────────────────────────────
+// ── Smart search: tokenized + relevance ranking + light fuzzy (typo tolerance) ──
+function searchTokenize(q){return (q||'').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);}
+function editDistLE(a,b,max){                 // bounded Levenshtein: true if edit distance ≤ max
+  const la=a.length,lb=b.length;
+  if(Math.abs(la-lb)>max)return false;
+  let prev=Array.from({length:lb+1},(_,j)=>j);
+  for(let i=1;i<=la;i++){
+    const cur=new Array(lb+1);cur[0]=i;let best=i;const ai=a.charCodeAt(i-1);
+    for(let j=1;j<=lb;j++){
+      const cost=ai===b.charCodeAt(j-1)?0:1;
+      cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+cost);
+      if(cur[j]<best)best=cur[j];
+    }
+    if(best>max)return false;
+    prev=cur;
+  }
+  return prev[lb]<=max;
+}
+function fuzzyWord(word,token){
+  if(word.includes(token))return true;
+  const max=token.length>=6?2:(token.length>=4?1:0);   // typo tolerance scales with length
+  return max?editDistLE(word,token,max):false;
+}
+// relevance score for a deal against query tokens; -1 = doesn't match all tokens (AND)
+function searchScore(deal,tokens){
+  const s=deal._search||'',words=deal._words||[],name=(deal.product_name||'').toLowerCase();
+  let score=0;
+  for(const t of tokens){
+    if(name.startsWith(t)){score+=100;continue;}
+    if(name.includes(t)){score+=50;continue;}
+    if(s.includes(t)){score+=20;continue;}
+    let fz=false;for(let k=0;k<words.length;k++){if(fuzzyWord(words[k],t)){fz=true;break;}}
+    if(fz){score+=8;continue;}
+    return -1;
+  }
+  return score;
+}
+
+// ── Search box: instant suggestions, debounced grid, clear (×), auto-clear on select ──
 let searchTimeout;
-document.getElementById('search').addEventListener('input',function(){
-  clearTimeout(searchTimeout);const q=this.value.trim();
-  if(q.length>1){showSuggestions(q);searchTimeout=setTimeout(()=>{searchQuery=q;renderDeals();},200);}
-  else{document.getElementById('search-suggestions').style.display='none';searchQuery='';renderDeals();}
+const _searchEl=document.getElementById('search');
+_searchEl.addEventListener('input',function(){
+  clearTimeout(searchTimeout);
+  const q=this.value.trim();
+  document.getElementById('search-clear').style.display=this.value.length?'flex':'none';
+  if(q.length>=2){
+    showSuggestions(q);                                          // instant (uses index)
+    searchTimeout=setTimeout(()=>{searchQuery=q;renderDeals();},150);
+  }else{
+    document.getElementById('search-suggestions').style.display='none';
+    searchTimeout=setTimeout(()=>{searchQuery='';renderDeals();},150);
+  }
 });
+_searchEl.addEventListener('keydown',e=>{if(e.key==='Escape')clearSearch(true);});
 document.addEventListener('click',e=>{if(!e.target.closest('#search-wrap'))document.getElementById('search-suggestions').style.display='none';});
+
+function clearSearch(focus){
+  const i=document.getElementById('search');i.value='';searchQuery='';
+  document.getElementById('search-suggestions').style.display='none';
+  document.getElementById('search-clear').style.display='none';
+  renderDeals();
+  if(focus)i.focus();
+}
+// Picking a product from suggestions: blank the search, reset the listing, open the deal
+function pickDeal(id){
+  const i=document.getElementById('search');if(i)i.value='';
+  searchQuery='';
+  document.getElementById('search-suggestions').style.display='none';
+  document.getElementById('search-clear').style.display='none';
+  renderDeals();
+  showDetail(id);
+}
+
 function showSuggestions(q){
-  const ql=q.toLowerCase();
-  const matches=ALL_DEALS.filter(d=>(d.product_name||'').toLowerCase().includes(ql)||(d.category||'').toLowerCase().includes(ql)).sort((a,b)=>(a.deal_order||999)-(b.deal_order||999)).slice(0,3);
+  const toks=searchTokenize(q);
   const el=document.getElementById('search-suggestions');
+  if(!toks.length){el.style.display='none';return;}
+  const matches=ALL_DEALS
+    .map(d=>({d,sc:searchScore(d,toks)}))
+    .filter(x=>x.sc>=0)
+    .sort((a,b)=>b.sc-a.sc || ((a.d.deal_order||999)-(b.d.deal_order||999)))
+    .slice(0,5).map(x=>x.d);
   if(!matches.length){el.style.display='none';return;}
-  el.innerHTML=matches.map(d=>{const imgs=getImages(d);return`<div class="suggestion-item" onclick="showDetail('${d.id}')"><div class="sug-img-wrap">${imgs[0]?`<img class="sug-img" src="${resizedUrl(imgs[0],80)}" onerror="this.style.display='none'">`:'🛍'}</div><div class="sug-info"><div class="sug-name">${cleanName(d.product_name)}</div><div class="sug-price">${d.report_storename} · ₹${fmt(Math.round(d.final_deal_price))}</div></div><span class="sug-badge">${Math.round(d.discount_percent||0)}% OFF</span></div>`;}).join('');
+  el.innerHTML=matches.map(d=>{const imgs=getImages(d);return`<div class="suggestion-item" onclick="pickDeal('${d.id}')"><div class="sug-img-wrap">${imgs[0]?`<img class="sug-img" src="${resizedUrl(imgs[0],80)}" onerror="this.style.display='none'">`:'🛍'}</div><div class="sug-info"><div class="sug-name">${cleanName(d.product_name)}</div><div class="sug-price">${d.report_storename} · ₹${fmt(Math.round(d.final_deal_price))}</div></div><span class="sug-badge">${Math.round(d.discount_percent||0)}% OFF</span></div>`;}).join('');
   el.style.display='block';
 }
 document.getElementById('sort-select').onchange=function(){activeSort=this.value;renderDeals();};
@@ -1653,7 +1762,7 @@ function renderTrending(){
   showSkeletons();
   document.getElementById('listing-page').style.display='block';
   try{
-    await Promise.all([fetchDeals(), fetchStoreData()]);
+    await Promise.all([fetchDeals(), fetchStoreData(), fetchCategories()]);
   }catch(e){
     console.error('Failed to load deals',e);
     const c=document.getElementById('content');
@@ -1668,7 +1777,7 @@ function renderTrending(){
   if(AUTO_REFRESH_MIN>0){
     setInterval(async()=>{
       try{
-        await Promise.all([fetchDeals(), fetchStoreData()]);
+        await Promise.all([fetchDeals(), fetchStoreData(), fetchCategories()]);
         buildSidebar();populateBrandDropdown();renderTrending();
         // only re-render the grid if the user is on the listing view
         if(document.getElementById('listing-page').style.display!=='none') renderDeals();
