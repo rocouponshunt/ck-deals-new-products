@@ -834,6 +834,15 @@ function getTimeLeft(deal,withSecs){
   const hL=Math.floor(msLeft/3600000),mL=Math.floor((msLeft%3600000)/60000),sL=Math.floor((msLeft%60000)/1000);
   return withSecs?`${String(hL).padStart(2,'0')}:${String(mL).padStart(2,'0')}:${String(sL).padStart(2,'0')}`:`${hL}h ${mL}m`;
 }
+// Short countdown for "Deals Expiring Soon" — random 5–15 min per deal, auto-rotates (never truly expires)
+function getTimeLeftShort(deal){
+  const seed=hashStr(deal&&(deal.id||deal.product_name));
+  const periodMs=(5+(seed%11))*60000;                    // 5–15 minutes
+  const phase=(seed*997)%periodMs;
+  const msLeft=periodMs-((Date.now()+phase)%periodMs);   // counts down, rolls over at 0
+  const mL=Math.floor(msLeft/60000),sL=Math.floor((msLeft%60000)/1000);
+  return `${String(mL).padStart(2,'0')}:${String(sL).padStart(2,'0')}`;
+}
 
 // ── CSV parser — handles quoted fields, commas & newlines inside quotes ──
 function parseCSV(text){
@@ -1167,6 +1176,7 @@ function getFiltered(){
 
 // ── Render grid — card timers survive filter/sort re-renders ─────
 let cardTimerIds = []; // separate from allIntervals so detail page doesn't kill them
+let expTimerIds = [];  // Expiring Soon row — its own array so renderDeals never clears these
 
 function renderDeals(){
   // Clear only card timers, not detail page timers
@@ -1185,7 +1195,7 @@ function renderDeals(){
 }
 
 // ── Deal card — single image with swipe ──────────────────────────
-function makeCard(deal,small){
+function makeCard(deal,small,shortTimer){
   const card=document.createElement('div');
   card.className='deal-card'+(deal.availability===false?' oos':'');
   if(small)card.style.fontSize='12px';
@@ -1275,10 +1285,12 @@ function makeCard(deal,small){
     slider.addEventListener('mouseup',e=>{if(!dragging)return;dragging=false;const diff=startX-e.clientX;if(Math.abs(diff)>40)goTo(diff>0?idx+1:idx-1);});
   }
 
-  // Timer — uses cardTimerIds so it survives filter/sort re-renders
+  // Timer — Expiring Soon uses a 5–15 min short timer on its own interval array
   const timerEl=card.querySelector('.card-timer-text');
-  const updTimer=()=>{if(timerEl&&document.contains(timerEl))timerEl.textContent=getTimeLeft(deal,true);};
-  updTimer();cardTimerIds.push(setInterval(updTimer,1000));
+  const tfn=()=>shortTimer?getTimeLeftShort(deal):getTimeLeft(deal,true);
+  if(timerEl)timerEl.textContent=tfn();               // set immediately, even before append (no blank)
+  const arr=shortTimer?expTimerIds:cardTimerIds;
+  arr.push(setInterval(()=>{if(timerEl&&document.contains(timerEl))timerEl.textContent=tfn();},1000));
 
   card.onclick=()=>showDetail(deal.id);
   return card;
@@ -1616,15 +1628,17 @@ function renderTrending(){
   const el=document.getElementById('trending-scroll');
   const section=document.getElementById('trending-section');
   if(!el||!section)return;
-  // Most recently added first (created_at), falling back to current order for rows without it.
+  // Manual deals lead, then most recently added (created_at); rows without a date sort last.
   const ts=d=>{const t=d.created_at?Date.parse(d.created_at):NaN;return isNaN(t)?-Infinity:t;};
+  const isManual=d=>d.source==='manual'?1:0;
   const expiring=[...ALL_DEALS]
-    .sort((a,b)=>ts(b)-ts(a))
+    .sort((a,b)=>(isManual(b)-isManual(a)) || (ts(b)-ts(a)))
     .slice(0,30);
   if(!expiring.length){section.style.display='none';return;}
   section.style.display='block';
+  expTimerIds.forEach(clearInterval);expTimerIds=[];      // reset this row's timers before re-render
   el.innerHTML='';
-  expiring.forEach(deal=>el.appendChild(makeCard(deal)));   // identical to grid cards
+  expiring.forEach(deal=>el.appendChild(makeCard(deal,false,true)));   // shortTimer=true → 5–15 min countdown
 
   // Desktop arrow scrolling (scroll by ~2 cards)
   const prev=document.getElementById('trending-prev');
