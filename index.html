@@ -1803,14 +1803,15 @@ function renderSections(){
   if(!host)return;
   secTimerIds.forEach(clearInterval);secTimerIds=[];
   host.innerHTML='';
+  try{console.log('[sections] loaded:',HOMEPAGE_SECTIONS.length,HOMEPAGE_SECTIONS[0]||'');}catch(e){}
   if(!HOMEPAGE_SECTIONS.length)return;
   HOMEPAGE_SECTIONS.forEach((sec,idx)=>{
-    const retailer=(sec.retailer||'').trim().toLowerCase();
+    const retailer=(sec.retailer||sec.retailer_name||sec.store||sec.store_name||sec.seller||sec.brand||'').trim().toLowerCase();
     if(!retailer)return;
-    let pool=ALL_DEALS.filter(d=>((d.report_storename||'').toLowerCase()===retailer)||((d.seller||'').toLowerCase()===retailer));
+    let pool=ALL_DEALS.filter(d=>((d.report_storename||'').toLowerCase()===retailer)||((d.seller||'').toLowerCase()===retailer)||((d.brand||'').toLowerCase()===retailer));
     if(activeCat!=='all')pool=pool.filter(d=>d.category===activeCat);   // category-aware
     pool.sort((a,b)=>((a.deal_order||999)-(b.deal_order||999))||((b.discount_percent||0)-(a.discount_percent||0)));
-    const max=sec.max_deals||sec.maxDeals||20;
+    const max=sec.max_deals||sec.maxDeals||sec.max||20;
     pool=pool.slice(0,max);
     if(!pool.length)return;                                             // auto-hide empty
     const bg=sectionBg(sec,idx),txt=readableOn(bg);
