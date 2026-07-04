@@ -1176,6 +1176,7 @@ function setCat(cat){
   const bfs=document.getElementById('brand-filter-select');
   if(bfs){bfs.value='';activeBrandFilter='';}
   populateBrandDropdown();
+  renderTrending();   // Expiring Soon reacts to the selected category
   renderDeals();
 }
 function populateBrandDropdown(){
@@ -1740,7 +1741,8 @@ function renderTrending(){
   // Manual deals lead, then most recently added (created_at); rows without a date sort last.
   const ts=d=>{const t=d.created_at?Date.parse(d.created_at):NaN;return isNaN(t)?-Infinity:t;};
   const isManual=d=>d.source==='manual'?1:0;
-  const expiring=[...ALL_DEALS]
+  const pool=activeCat==='all'?ALL_DEALS:ALL_DEALS.filter(d=>d.category===activeCat);  // react to category tile
+  const expiring=[...pool]
     .sort((a,b)=>(isManual(b)-isManual(a)) || (ts(b)-ts(a)))
     .slice(0,30);
   if(!expiring.length){section.style.display='none';return;}
