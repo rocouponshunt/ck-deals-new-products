@@ -1276,7 +1276,7 @@ function renderBrandList(query){
 function toggleBrand(brand){
   if(selectedBrands.has(brand))selectedBrands.delete(brand);else selectedBrands.add(brand);
   renderBrandList((document.getElementById('brand-search')?.value||'').trim().toLowerCase());
-  updateFilterBadge();renderDeals();
+  updateFilterBadge();                 // instant tick; grid updates on Apply (snappy multi-select)
 }
 function clearBrands(){selectedBrands.clear();renderBrandList('');updateFilterBadge();renderDeals();}
 
@@ -1313,13 +1313,18 @@ function applyFilters(){
   const mn=parseFloat(document.getElementById('price-min').value);
   const mx=parseFloat(document.getElementById('price-max').value);
   priceMin=isNaN(mn)?null:mn;priceMax=isNaN(mx)?null:mx;
-  updateFilterBadge();renderDeals();closeSheets();
+  updateFilterBadge();
+  closeSheets();                                  // close instantly (feels snappy)
+  requestAnimationFrame(()=>renderDeals());       // heavy grid rebuild after the sheet is gone
 }
 function clearFilters(){
+  const had=selectedBrands.size>0||priceMin||priceMax;
   selectedBrands.clear();priceMin=null;priceMax=null;
   const a=document.getElementById('price-min'),b=document.getElementById('price-max');
   if(a)a.value='';if(b)b.value='';
-  renderBrandList('');updateFilterBadge();renderDeals();
+  renderBrandList('');updateFilterBadge();
+  closeSheets();
+  if(had)requestAnimationFrame(()=>renderDeals()); // only rebuild if something was actually set
 }
 function setCat(cat){
   activeCat=cat;
@@ -1928,7 +1933,8 @@ function renderSections(){
     if(!retailer)return;
     let pool=ALL_DEALS.filter(d=>((d.report_storename||'').toLowerCase()===retailer)||((d.seller||'').toLowerCase()===retailer)||((d.brand||'').toLowerCase()===retailer));
     if(activeCat!=='all')pool=pool.filter(d=>d.category===activeCat);   // category-aware
-    pool.sort((a,b)=>((a.deal_order||999)-(b.deal_order||999))||((b.discount_percent||0)-(a.discount_percent||0)));
+    const ts=d=>{const t=d.created_at?Date.parse(d.created_at):NaN;return isNaN(t)?-Infinity:t;};
+    pool.sort((a,b)=>ts(b)-ts(a));                                       // newest first
     const max=sec.max_deals||sec.maxDeals||sec.max||20;
     pool=pool.slice(0,max);
     if(!pool.length)return;                                             // auto-hide empty
