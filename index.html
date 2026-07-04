@@ -256,6 +256,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .trending-arrow:hover{background:var(--bg3)}
 .trending-arrow.left{left:-6px}.trending-arrow.right{right:-6px}
 @media(max-width:900px){.trending-arrow{display:none}}
+/* Retailer carousels (admin-configured) — reuse trending scroll/cards/arrows */
+.retailer-band{padding:16px 0 18px;border-top:1px solid rgba(0,0,0,.05)}
+.retailer-inner{max-width:1400px;margin:0 auto;padding:0 16px;position:relative}
+.retailer-inner .trending-scroll{margin-top:2px}
 
 /* Full-width deals section (sidebar removed) with its own distinct band */
 #sidebar{display:none !important}
@@ -609,6 +613,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
       <button class="trending-arrow right" id="trending-next" aria-label="Scroll right">›</button>
     </div>
   </div>
+  <!-- Admin-configured retailer carousels render here -->
+  <div id="retailer-sections"></div>
+
   <div id="deals-section">
   <div id="page-body">
     <div id="sidebar">
@@ -671,6 +678,7 @@ const API_BASE       = 'https://krazy-deals.lovable.app';
 const DEALS_URL      = API_BASE + '/api/public/deals';    // live merged deals (auto + manual), JSON
 const STORE_DATA_URL = API_BASE + '/api/public/stores';   // per-store metadata, JSON
 const CATEGORIES_URL = API_BASE + '/api/public/categories'; // category order + icon images, JSON
+const SECTIONS_URL   = API_BASE + '/api/public/sections';   // homepage retailer carousels, JSON
 const AUTO_REFRESH_MIN = 10;   // re-pull every N minutes (0 = off)
 
 /* ── STORE-LEVEL CONTENT (per retailer, from the "Store-Data" tab) ───
@@ -695,6 +703,8 @@ const TRACKING_URL_TEMPLATE = 'https://tracking.cashkaro.com/visitretailer/{stor
 
 let ALL_DEALS = [], GLOBAL_TIMER = 12, IMAGE_ROTATION_MS = 2000, CATEGORY_ORDER = [];
 let CAT_ICON_URL = {};   // {category name: admin-set icon image URL}
+let HOMEPAGE_SECTIONS = [];   // admin-configured retailer carousels
+let secTimerIds = [];         // retailer-section card timers (own array; renderDeals won't clear)
 let CTA_LABEL = 'View Deal', SIMILAR_DEALS_LABEL = 'Similar Deals', BANNER_IMAGE_URL = '';
 
 // Dynamic userid from URL param — accepts userid, userId, user_id. No fallback — null if not present.
@@ -1032,6 +1042,20 @@ async function fetchCategories(){
   }catch(e){ console.warn('Categories not loaded',e); }
 }
 
+// ── Fetch homepage retailer sections (title, retailer, order, bg color, max) ──
+async function fetchSections(){
+  if(!SECTIONS_URL) return;
+  try{
+    const bust=(SECTIONS_URL.includes('?')?'&':'?')+'cb='+Date.now();
+    const res=await fetch(SECTIONS_URL+bust,{cache:'no-store'});
+    if(!res.ok) throw new Error('Sections API '+res.status);
+    const data=await res.json();
+    const rows=Array.isArray(data)?data:(data.sections||data.data||[]);
+    rows.sort((a,b)=>((a.position??999)-(b.position??999)));
+    HOMEPAGE_SECTIONS=rows.filter(r=>r&&(r.enabled===undefined||r.enabled));
+  }catch(e){ console.warn('Sections not loaded',e); }
+}
+
 // ── Fetch the Store-Data tab → map keyed by storeid and by store_name ──
 async function fetchStoreData(){
   if(!STORE_DATA_URL) return; // optional
@@ -1176,7 +1200,7 @@ function setCat(cat){
   const bfs=document.getElementById('brand-filter-select');
   if(bfs){bfs.value='';activeBrandFilter='';}
   populateBrandDropdown();
-  renderTrending();   // Expiring Soon reacts to the selected category
+  renderTrending();renderSections();   // Expiring Soon + retailer rows react to the selected category
   renderDeals();
 }
 function populateBrandDropdown(){
@@ -1325,11 +1349,13 @@ function makeCard(deal,small,shortTimer){
     slider.addEventListener('mouseup',e=>{if(!dragging)return;dragging=false;const diff=startX-e.clientX;if(Math.abs(diff)>40)goTo(diff>0?idx+1:idx-1);});
   }
 
-  // Timer — Expiring Soon uses a 5–15 min short timer on its own interval array
+  // Timer — Expiring Soon = 5–15 min short; retailer sections = normal timer on their own array; grid = normal
   const timerEl=card.querySelector('.card-timer-text');
-  const tfn=()=>shortTimer?getTimeLeftShort(deal):getTimeLeft(deal,true);
+  const short=shortTimer===true||shortTimer==='short';
+  const isSection=shortTimer==='section';
+  const tfn=()=>short?getTimeLeftShort(deal):getTimeLeft(deal,true);
   if(timerEl)timerEl.textContent=tfn();               // set immediately, even before append (no blank)
-  const arr=shortTimer?expTimerIds:cardTimerIds;
+  const arr=short?expTimerIds:(isSection?secTimerIds:cardTimerIds);
   arr.push(setInterval(()=>{if(timerEl&&document.contains(timerEl))timerEl.textContent=tfn();},1000));
 
   card.onclick=()=>showDetail(deal.id);
@@ -1759,18 +1785,61 @@ function renderTrending(){
   if(next)next.onclick=()=>el.scrollBy({left:step(),behavior:'smooth'});
 }
 
-// ── Boot ─────────────────────────────────────────────────────────
+// ── Retailer carousels (admin-configured) — below Expiring Soon, category-aware, normal timers ──
+const SECTION_PALETTE=['#eef6ff','#fff3ee','#eefbf1','#f7f0ff','#fffbe8','#eafaf9','#fdeef4','#eef2fb'];
+function sectionBg(sec,idx){
+  const c=(sec.bg_color||'').trim();
+  if(/^#([0-9a-f]{6})$/i.test(c))return c;
+  return SECTION_PALETTE[idx%SECTION_PALETTE.length];
+}
+function readableOn(bg){
+  const h=(bg||'').replace('#','');
+  if(h.length<6)return 'var(--text)';
+  const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);
+  return ((0.299*r+0.587*g+0.114*b)/255)>0.62?'#14213a':'#ffffff';
+}
+function renderSections(){
+  const host=document.getElementById('retailer-sections');
+  if(!host)return;
+  secTimerIds.forEach(clearInterval);secTimerIds=[];
+  host.innerHTML='';
+  if(!HOMEPAGE_SECTIONS.length)return;
+  HOMEPAGE_SECTIONS.forEach((sec,idx)=>{
+    const retailer=(sec.retailer||'').trim().toLowerCase();
+    if(!retailer)return;
+    let pool=ALL_DEALS.filter(d=>((d.report_storename||'').toLowerCase()===retailer)||((d.seller||'').toLowerCase()===retailer));
+    if(activeCat!=='all')pool=pool.filter(d=>d.category===activeCat);   // category-aware
+    pool.sort((a,b)=>((a.deal_order||999)-(b.deal_order||999))||((b.discount_percent||0)-(a.discount_percent||0)));
+    const max=sec.max_deals||sec.maxDeals||20;
+    pool=pool.slice(0,max);
+    if(!pool.length)return;                                             // auto-hide empty
+    const bg=sectionBg(sec,idx),txt=readableOn(bg);
+    const band=document.createElement('div');band.className='retailer-band';band.style.background=bg;
+    const inner=document.createElement('div');inner.className='retailer-inner';
+    const head=document.createElement('div');head.className='trending-header';
+    head.innerHTML=`<span class="trending-title" style="color:${txt}">${safeHtml(sec.title||retailer)}</span><span class="trending-swipe-hint" style="color:${txt};opacity:.85">Swipe for more <span>→</span></span>`;
+    const prev=document.createElement('button');prev.className='trending-arrow left';prev.textContent='‹';
+    const next=document.createElement('button');next.className='trending-arrow right';next.textContent='›';
+    const scroll=document.createElement('div');scroll.className='trending-scroll';
+    pool.forEach(d=>scroll.appendChild(makeCard(d,false,'section')));   // normal deal timers
+    inner.appendChild(head);inner.appendChild(prev);inner.appendChild(scroll);inner.appendChild(next);
+    band.appendChild(inner);host.appendChild(band);
+    const step=()=>{const c=scroll.querySelector('.deal-card');return c?(c.getBoundingClientRect().width+16)*2:400;};
+    prev.onclick=()=>scroll.scrollBy({left:-step(),behavior:'smooth'});
+    next.onclick=()=>scroll.scrollBy({left:step(),behavior:'smooth'});
+  });
+}
 (async()=>{
   showSkeletons();
   document.getElementById('listing-page').style.display='block';
   try{
-    await Promise.all([fetchDeals(), fetchStoreData(), fetchCategories()]);
+    await Promise.all([fetchDeals(), fetchStoreData(), fetchCategories(), fetchSections()]);
   }catch(e){
     console.error('Failed to load deals',e);
     const c=document.getElementById('content');
     if(c)c.innerHTML='<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Couldn\'t load deals</div><div>Check that the Google Sheet is published to the web as CSV and the link at the top of the file is correct.</div></div>';
   }
-  hideSkeletons();buildSidebar();populateBrandDropdown();renderTrending();renderDeals();
+  hideSkeletons();buildSidebar();populateBrandDropdown();renderTrending();renderSections();renderDeals();
   document.getElementById('loader').style.display='none';
   if(pendingDealId){showDetail(pendingDealId);pendingDealId=null;}
   else handleHash();
@@ -1779,8 +1848,8 @@ function renderTrending(){
   if(AUTO_REFRESH_MIN>0){
     setInterval(async()=>{
       try{
-        await Promise.all([fetchDeals(), fetchStoreData(), fetchCategories()]);
-        buildSidebar();populateBrandDropdown();renderTrending();
+        await Promise.all([fetchDeals(), fetchStoreData(), fetchCategories(), fetchSections()]);
+        buildSidebar();populateBrandDropdown();renderTrending();renderSections();
         // only re-render the grid if the user is on the listing view
         if(document.getElementById('listing-page').style.display!=='none') renderDeals();
       }catch(e){/* keep showing current data on a failed refresh */}
