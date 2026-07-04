@@ -231,22 +231,28 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .badge-rewards{background:var(--accent-light);color:var(--accent)}
 .price-drop-ribbon{position:absolute;top:0;right:0;background:#e53e3e;color:#fff;font-size:9px;font-weight:700;padding:3px 8px;border-bottom-left-radius:8px;letter-spacing:.4px;z-index:3;display:flex;align-items:center;gap:3px}
 
-/* Trending Deals carousel — mobile only */
-#trending-section{display:none;background:#fff;border-bottom:1px solid var(--border);padding:10px 0 4px}
-@media(max-width:900px){#trending-section{display:block}}
-.trending-header{padding:0 12px 8px;display:flex;align-items:center;gap:6px}
-.trending-title{font-family:var(--font);font-size:13px;font-weight:700;color:var(--text)}
-.trending-badge{background:var(--lime);color:var(--lime-ink);font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;letter-spacing:.3px}
-.trending-scroll{display:flex;gap:10px;overflow-x:auto;padding:0 12px 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+/* Deals Expiring Soon — full-width swipe row of full-size cards (desktop + mobile) */
+#trending-section{display:block;background:linear-gradient(180deg,#fff7ec 0%,#fffdf9 100%);border-top:1px solid #f2ddbf;border-bottom:1px solid #f2ddbf;padding:16px 0 18px;margin-bottom:6px}
+#trending-inner{max-width:1400px;margin:0 auto;padding:0 16px;position:relative}
+.trending-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.trending-title{font-family:var(--font);font-size:18px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px}
+.trending-title .exp-ico{font-size:19px}
+.trending-sub{font-size:12px;color:#b06a00;font-weight:600}
+.trending-badge{background:#f59e0b;color:#fff;font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px;letter-spacing:.4px;text-transform:uppercase}
+.trending-swipe-hint{margin-left:auto;font-size:11px;color:var(--text2);font-weight:600;display:flex;align-items:center;gap:4px}
+@media(max-width:560px){.trending-swipe-hint{display:none}.trending-title{font-size:16px}}
+.trending-scroll{display:flex;gap:16px;overflow-x:auto;overflow-y:hidden;padding:4px 2px 6px;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .trending-scroll::-webkit-scrollbar{display:none}
-.trending-card{flex-shrink:0;width:120px;background:#fff;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;box-shadow:var(--shadow)}
-.trending-card:active{opacity:.85}
-.trending-img{width:100%;height:0;padding-bottom:100%;position:relative;background:var(--bg3)}
-.trending-img-bg{position:absolute;top:0;left:0;width:100%;height:100%;background-size:contain;background-repeat:no-repeat;background-position:center;background-color:#fff}
-.trending-disc{position:absolute;top:5px;left:5px;background:rgba(20,25,40,.92);color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;z-index:1}
-.trending-info{padding:6px 8px}
-.trending-name{font-size:10px;font-weight:600;color:var(--text);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:3px}
-.trending-price{font-family:var(--font);font-size:13px;font-weight:800;color:var(--price)}
+/* Reuse the exact grid card, just fix its width so the row is swipable */
+.trending-scroll .deal-card{flex:0 0 var(--card-w);width:var(--card-w);scroll-snap-align:start}
+.trending-scroll .deal-card:hover{transform:none;box-shadow:var(--shadow-hover)}
+@media(max-width:900px){.trending-scroll .deal-card{flex-basis:185px;width:185px}}
+@media(max-width:560px){.trending-scroll .deal-card{flex-basis:165px;width:165px}}
+/* Desktop scroll arrows */
+.trending-arrow{position:absolute;top:calc(50% + 12px);transform:translateY(-50%);z-index:5;width:38px;height:38px;border-radius:50%;background:#fff;border:1.5px solid var(--border);box-shadow:var(--shadow-hover);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--text);transition:background .15s}
+.trending-arrow:hover{background:var(--bg3)}
+.trending-arrow.left{left:-6px}.trending-arrow.right{right:-6px}
+@media(max-width:900px){.trending-arrow{display:none}}
 
 /* Skeleton */
 .skeleton{background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px}
@@ -577,13 +583,19 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
       </div>
     </div>
   </div>
-  <!-- Trending Deals Ending Soon — mobile only -->
+  <!-- Deals Expiring Soon — full-width swipe row (desktop + mobile) -->
   <div id="trending-section">
-    <div class="trending-header">
-      <span class="trending-title">🔥 Trending Deals Ending Soon</span>
-      <span class="trending-badge">NEW</span>
+    <div id="trending-inner">
+      <div class="trending-header">
+        <span class="trending-title"><span class="exp-ico">⏰</span>Deals Expiring Soon</span>
+        <span class="trending-badge">Ending Soon</span>
+        <span class="trending-sub">Grab them before they're gone</span>
+        <span class="trending-swipe-hint">Swipe for more <span>→</span></span>
+      </div>
+      <button class="trending-arrow left" id="trending-prev" aria-label="Scroll left">‹</button>
+      <div class="trending-scroll" id="trending-scroll"></div>
+      <button class="trending-arrow right" id="trending-next" aria-label="Scroll right">›</button>
     </div>
-    <div class="trending-scroll" id="trending-scroll"></div>
   </div>
   <div id="page-body">
     <div id="sidebar">
@@ -904,6 +916,8 @@ function mapRow(r){
     price_dropped: bool(r.price_dropped),
     timer_hours  : num(r.timer_hours) || 0,
     description  : r.description || '',
+    created_at   : r.created_at || r.createdAt || '',   // for newest-first (Expiring Soon + sort)
+    source       : (r.source||'').trim().toLowerCase(), // 'auto' | 'manual' (if provided)
 
     // ── Cashback (single-rate model, groupid 'A') ──
     groupid      : 'A',
@@ -1586,31 +1600,27 @@ function handleHash(){
 }
 window.addEventListener('hashchange',handleHash);
 
-// ── Trending Deals Ending Soon — top 5 newest, mobile carousel ──
+// ── Deals Expiring Soon — newest 30 (auto + manual), full-size cards, swipe row ──
 function renderTrending(){
   const el=document.getElementById('trending-scroll');
-  if(!el)return;
-  const trending=[...ALL_DEALS].sort((a,b)=>(b.discount_percent||0)-(a.discount_percent||0)).slice(0,20);
-  if(!trending.length){document.getElementById('trending-section').style.display='none';return;}
+  const section=document.getElementById('trending-section');
+  if(!el||!section)return;
+  // Most recently added first (created_at), falling back to current order for rows without it.
+  const ts=d=>{const t=d.created_at?Date.parse(d.created_at):NaN;return isNaN(t)?-Infinity:t;};
+  const expiring=[...ALL_DEALS]
+    .sort((a,b)=>ts(b)-ts(a))
+    .slice(0,30);
+  if(!expiring.length){section.style.display='none';return;}
+  section.style.display='block';
   el.innerHTML='';
-  trending.forEach(deal=>{
-    const imgs=getImages(deal);
-    const disc=Math.round(deal.discount_percent||0);
-    const price=Math.round(deal.final_deal_price||0);
-    const card=document.createElement('div');
-    card.className='trending-card';
-    card.innerHTML=`
-      <div class="trending-img">
-        ${imgs[0]?imgTag(imgs[0],240,'trending-img-el'):'<div class="img-ph">🛍</div>'}
-        ${disc>0?`<div class="trending-disc">${disc}% OFF</div>`:''}
-      </div>
-      <div class="trending-info">
-        <div class="trending-name">${cleanName(deal.product_name)}</div>
-        <div class="trending-price">₹${fmt(price)}</div>
-      </div>`;
-    card.onclick=()=>showDetail(deal.id);
-    el.appendChild(card);
-  });
+  expiring.forEach(deal=>el.appendChild(makeCard(deal)));   // identical to grid cards
+
+  // Desktop arrow scrolling (scroll by ~2 cards)
+  const prev=document.getElementById('trending-prev');
+  const next=document.getElementById('trending-next');
+  const step=()=>{const c=el.querySelector('.deal-card');return c?(c.getBoundingClientRect().width+16)*2:400;};
+  if(prev)prev.onclick=()=>el.scrollBy({left:-step(),behavior:'smooth'});
+  if(next)next.onclick=()=>el.scrollBy({left:step(),behavior:'smooth'});
 }
 
 // ── Boot ─────────────────────────────────────────────────────────
