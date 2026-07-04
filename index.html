@@ -254,6 +254,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 .trending-arrow.left{left:-6px}.trending-arrow.right{right:-6px}
 @media(max-width:900px){.trending-arrow{display:none}}
 
+/* Full-width deals section (sidebar removed) with its own distinct band */
+#sidebar{display:none !important}
+#deals-section{background:linear-gradient(180deg,#eef3ff 0%,#fafbff 100%);padding:22px 0 60px}
+#page-body{max-width:1400px;margin:0 auto;padding:0 16px;display:block}
+.section-head{font-family:var(--font);font-size:18px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.section-head .sh-sub{font-size:12px;color:var(--text2);font-weight:600}
+@media(max-width:560px){.section-head{font-size:16px}.section-head .sh-sub{display:none}}
+
 /* Skeleton */
 .skeleton{background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
@@ -597,6 +605,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
       <button class="trending-arrow right" id="trending-next" aria-label="Scroll right">›</button>
     </div>
   </div>
+  <div id="deals-section">
   <div id="page-body">
     <div id="sidebar">
       <div class="sidebar-section">
@@ -609,10 +618,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
       </div>
     </div>
     <div id="content-area">
+      <div class="section-head">🔥 Today's Top Deals <span class="sh-sub">Handpicked cashback deals</span></div>
       <div id="results-header" style="display:none"><div id="results-count"></div></div>
       <div id="skeletons" class="deal-grid" style="margin-bottom:0px"></div>
       <div id="content" class="deal-grid"></div>
     </div>
+  </div>
   </div>
 </div>
 
