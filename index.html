@@ -461,8 +461,19 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
     border-radius: 0;
     padding: 0;
     /* box-shadow: var(--shadow); */
+    width: 100%;
+    float: left;
 }
-.detail-price-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.detail-price-row {
+    /* display: flex; */
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    /* flex-wrap: wrap; */
+    float: left;
+}a.whatsapp-btn {
+    float: right;
+}
 .detail-mrp{text-decoration:line-through;color:var(--text3);font-size:15px}
 .detail-price{font-family:var(--font);font-size:36px;font-weight:800;color:var(--price);letter-spacing:-1.5px}
 .detail-discount-badge {
@@ -488,6 +499,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
     border-top: 1px solid var(--border);
     margin-top: 10px;
     margin-bottom: 10px;
+    clear: both;
 }
 .wf-inline-toggle:hover{opacity:.8}
 .wf-inline-body{display:none;margin-top:8px;background:var(--bg3);border-radius:10px;padding:12px;font-size:12.5px;font-family:var(--font);font-weight:500}
@@ -605,6 +617,43 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 </head>
 <body>
 
+<!-- ── Per-deal referral relay ─────────────────────────────────────────
+     Handles WhatsApp "Join + this deal" links: ?r=<sender>&target=<dealId>
+     Outbound: stash the deal on this origin, then send the user to CashKaro
+               to sign up (referral credited to <sender>).
+     Return:   CashKaro forwards them back here with a userId → reopen the
+               stashed deal. Falls back to homepage if anything is missing. -->
+<script>
+(function () {
+  var KEY = "ck_pending_deal";
+  var MAX_AGE = 30 * 60 * 1000; // 30 min — stale targets are dropped
+  var p = new URLSearchParams(window.location.search);
+  var target = p.get("target");        // present only on a "join + this deal" link
+  var ref    = p.get("r") || "";       // sender's userId, for CashKaro signup credit
+
+  // OUTBOUND: stash the deal, then go to CashKaro to sign up
+  if (target) {
+    try { localStorage.setItem(KEY, JSON.stringify({ t: target, ts: Date.now() })); } catch (e) {}
+    window.location.replace("https://cashkaro.com/page/sale-ck-deals-new?r=" + encodeURIComponent(ref));
+    return;
+  }
+
+  // RETURN (no target in URL, and not already pointing at a deal): reopen the stash
+  if (!window.location.hash) {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) {
+        var s = JSON.parse(raw);
+        localStorage.removeItem(KEY);
+        if (s && s.t && (Date.now() - s.ts) < MAX_AGE) {
+          window.location.hash = "deal/" + s.t; // your router opens it on init/hashchange
+        }
+      }
+    } catch (e) {}
+  }
+})();
+</script>
+
 <div id="loader">
   <div id="loader-logo"><img src="https://asset22.ckassets.com/wp/wp-content/themes/CashKaro_WP_V1/img/cashkaro_logo_v1.svg"></div>
   <div class="loader-bar"><div class="loader-fill"></div></div>
@@ -702,6 +751,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
   <div id="floating-cta">
     <a id="floating-cta-btn" href="#" target="_blank" rel="noopener">Shop Now &amp; Earn Cashback</a>
   </div>
+  
   <div id="detail-inner">
     <div class="detail-grid">
       <div id="gallery" class="gallery"></div>
@@ -1581,7 +1631,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheets();});
 
 // ── Detail page ──────────────────────────────────────────────────
 function showDetail(dealId){
-  const deal=ALL_DEALS.find(d=>d.id===dealId);if(!deal)return;
+  const deal=ALL_DEALS.find(d=>d.id===dealId);if(!deal){console.warn('Deal not found (removed / out of stock / deduped):',dealId);showListing();return;}
   window.__ckCurrentDeal=deal;
   window.logDealEvent(deal,'dealview');
   window.location.hash='deal/'+dealId;window.scrollTo(0,0);
@@ -1783,9 +1833,18 @@ function renderDetail(deal){
         <span class="detail-price" id="dp-final">₹${fmt(finalRounded)}</span>
         <span class="detail-discount-badge" id="dp-disc">${disc}% OFF</span>
       </div>
+
+	  <a href="javascript:void(0);" class="whatsapp-btn" rel="noopener" aria-label="Share on WhatsApp" title="Share on WhatsApp">
+    <svg width="44" height="44" viewBox="0 0 24 24" fill="#25D366" xmlns="http://www.w3.org/2000/svg">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+    </svg>
+</a>
+	  
       ${perUnitLine}
 
-            </div>        ${deal.coupon_code ? `      <div style="margin-top:12px;padding:6px 14px; width: auto; background:#fff;border:1.5px dashed #dddddd;border-radius:10px;display:inline-block">         <div style="float: left; margin-right: 12px;">           <div class="coupon-code" style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#92400e;     margin-top: 6px; margin-bottom:4px">Code: <span>${deal.coupon_code}</span></div>           </div>         <button onclick="navigator.clipboard.writeText('${deal.coupon_code}').then(()=>{this.textContent='Copied!';this.style.background='#16a34a';setTimeout(()=>{this.textContent='Copy';this.style.background='#f59e0b';},2000)})" style="background:#f59e0b;color:#fff;border:none;padding:0px 6px;border-radius:8px;font-family:var(--font);font-size:24px;font-weight:700;cursor:pointer;flex-shrink:0;transition:all .15s">&#x2398; </button>       </div>` : ''}       <div class="wf-inline-toggle" onclick="var b=this.nextElementSibling;b.classList.toggle('open');this.querySelector('.wf-arr').textContent=b.classList.contains('open')?'▴':'▾'">
+            </div>  
+
+			${deal.coupon_code ? `      <div style="margin-top:12px;padding:6px 14px; width: auto; background:#fff;border:1.5px dashed #dddddd;border-radius:10px;display:inline-block">         <div style="float: left; margin-right: 12px;">           <div class="coupon-code" style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#92400e;     margin-top: 6px; margin-bottom:4px">Code: <span>${deal.coupon_code}</span></div>           </div>         <button onclick="navigator.clipboard.writeText('${deal.coupon_code}').then(()=>{this.textContent='Copied!';this.style.background='#16a34a';setTimeout(()=>{this.textContent='Copy';this.style.background='#f59e0b';},2000)})" style="background:#f59e0b;color:#fff;border:none;padding:0px 6px;border-radius:8px;font-family:var(--font);font-size:24px;font-weight:700;cursor:pointer;flex-shrink:0;transition:all .15s">&#x2398; </button>       </div>` : ''}       <div class="wf-inline-toggle" onclick="var b=this.nextElementSibling;b.classList.toggle('open');this.querySelector('.wf-arr').textContent=b.classList.contains('open')?'▴':'▾'">
         <span>💡 How is this price calculated?</span><span class="wf-arr">▴</span>
       </div>
 	  
@@ -2084,6 +2143,74 @@ function renderSections(){
   scanAll(document);
 })();
 </script>
+
+
+<script>
+document.addEventListener("click", async function (e) {
+    const btn = e.target.closest(".whatsapp-btn");
+    if (!btn) return;
+    e.preventDefault();
+
+    const params = new URLSearchParams(window.location.search);
+    const userId = params.get("userId") || "";            // sender's userId (becomes ?r=)
+
+    // Current deal id from the hash (#deal/deal-123 -> deal-123), for the per-deal relay
+    const dealId = (location.hash.match(/deal\/(.+)$/) || [])[1] || "";
+
+    // Referral "Join" link -> points at the relay on THIS site so the recipient
+    // lands back on this exact deal after signing up. Left as a full link (not shortened).
+    const joinLink = "https://rocouponshunt.github.io/ck-deals-new-products/?r="
+        + encodeURIComponent(userId)
+        + (dealId ? "&target=" + encodeURIComponent(dealId) : "");
+
+    // The tracked deal / claim link (credits the sender on purchase)
+    const claimLink = document.getElementById("floating-cta-btn")?.href || "";
+
+    // Offer name WITHOUT the ×N quantity badge (badge is a later child node)
+    const nameEl = document.querySelector(".detail-name");
+    const offerName = (nameEl?.childNodes[0]?.textContent || "").trim();
+
+    // Prices exactly as shown on the page (all already include the ₹ symbol)
+    const mrp     = document.querySelector(".wv")?.textContent.trim() || "";       // MRP row
+    const price   = document.getElementById("dp-final")?.textContent.trim() || ""; // final, after coupon + cashback
+    const discPct = document.getElementById("dp-disc")?.textContent.trim() || "";  // e.g. "62% OFF"
+
+    // Shorten ONLY the deal link via is.gd. Cache per-URL on the button so repeat
+    // taps don't re-call; fall back to the full link on any failure.
+    let shortLink = claimLink;
+    if (claimLink) {
+        if (btn.dataset.shortFor === claimLink && btn.dataset.short) {
+            shortLink = btn.dataset.short;
+        } else {
+            try {
+                const r = await fetch("https://is.gd/create.php?format=simple&url=" + encodeURIComponent(claimLink));
+                if (r.ok) {
+                    const s = (await r.text()).trim();
+                    if (/^https?:\/\//i.test(s)) {
+                        shortLink = s;
+                        btn.dataset.short = s;
+                        btn.dataset.shortFor = claimLink;
+                    }
+                }
+            } catch (err) { /* keep the long link */ }
+        }
+    }
+
+    const message =
+`Deal alert 👇
+
+${offerName}
+${mrp} → ${price}  (${discPct})
+Price shown includes CashKaro cashback.
+
+Deal link 👉 ${shortLink}
+
+Want cashback in your own account? You'll need to be on CashKaro — it's free and pays straight to your bank. Join 👉 ${joinLink}`;
+
+    window.location.href = "https://wa.me/?text=" + encodeURIComponent(message);
+});
+</script>
+
 
 </body>
 </html>
