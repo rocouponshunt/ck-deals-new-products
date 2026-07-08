@@ -474,6 +474,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 }a.whatsapp-btn {
     float: right;
 }
+html[data-wa-enabled="false"] .whatsapp-btn { display: none !important; }
 .detail-mrp{text-decoration:line-through;color:var(--text3);font-size:15px}
 .detail-price{font-family:var(--font);font-size:36px;font-weight:800;color:var(--price);letter-spacing:-1.5px}
 .detail-discount-badge {
@@ -631,10 +632,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
   var target = p.get("target");        // present only on a "join + this deal" link
   var ref    = p.get("r") || "";       // sender's userId, for CashKaro signup credit
 
-  // OUTBOUND: stash the deal, then go to CashKaro to sign up
+  // OUTBOUND: stash the deal, then go to CashKaro to sign up.
+  // Pass target in the URL as well as localStorage — the URL survives across app/
+  // browser context switches (mobile), localStorage does not.
   if (target) {
     try { localStorage.setItem(KEY, JSON.stringify({ t: target, ts: Date.now() })); } catch (e) {}
-    window.location.replace("https://cashkaro.com/page/sale-ck-deals-new?r=" + encodeURIComponent(ref));
+    window.location.replace("https://cashkaro.com/page/sale-ck-deals-new?r="
+      + encodeURIComponent(ref) + "&target=" + encodeURIComponent(target));
     return;
   }
 
@@ -651,6 +655,25 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
       }
     } catch (e) {}
   }
+})();
+</script>
+
+<!-- ── WhatsApp Share settings (from Lovable/Supabase edge function) ────────
+     Controls whether the button shows and what the message template is.
+     Safe defaults if the function is unreachable → button still works. -->
+<script>
+window.__waEnabled  = true;   // default: show (safer than hiding on a network hiccup)
+window.__waTemplate = "";     // empty → handler falls back to its built-in copy
+(function () {
+  fetch("https://vvpzdsqrardzglhyqywv.supabase.co/functions/v1/get-whatsapp-settings", { cache: "no-store" })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (s) {
+      if (!s) return;
+      if (typeof s.enabled === "boolean") window.__waEnabled = s.enabled;
+      if (typeof s.template === "string") window.__waTemplate = s.template;
+      document.documentElement.setAttribute("data-wa-enabled", window.__waEnabled ? "true" : "false");
+    })
+    .catch(function () { /* keep defaults → button stays visible with built-in copy */ });
 })();
 </script>
 
@@ -1630,6 +1653,17 @@ document.getElementById('open-filter').onclick=()=>openSheet('filter');
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheets();});
 
 // ── Detail page ──────────────────────────────────────────────────
+// Background short-link cache so the WhatsApp tap handler can stay 100% synchronous
+// (mobile blocks app-to-app navigation that happens after an await).
+window.__shortCache = window.__shortCache || {};
+function prefetchShort(url){
+  if(!url || window.__shortCache[url]) return;
+  window.__shortCache[url] = url;                 // immediate fallback = the long link
+  fetch("https://is.gd/create.php?format=simple&url=" + encodeURIComponent(url))
+    .then(r => r.ok ? r.text() : null)
+    .then(t => { t=(t||'').trim(); if(/^https?:\/\//i.test(t)) window.__shortCache[url]=t; })
+    .catch(()=>{});                                // keep the long link on any failure
+}
 function showDetail(dealId){
   const deal=ALL_DEALS.find(d=>d.id===dealId);if(!deal){console.warn('Deal not found (removed / out of stock / deduped):',dealId);showListing();return;}
   window.__ckCurrentDeal=deal;
@@ -1883,6 +1917,7 @@ function renderDetail(deal){
   const fb=document.getElementById('floating-cta-btn');
   const floatCtaText=qty>1?`Shop Now · ${qty} units · ₹${fmt(finalRounded)} total`:(cb>0?`Shop Now & Earn ${cbDisplay} ${cbWord}`:`Shop Now`);
   if(fb){fb.href=trackingUrl;fb.textContent=floatCtaText;}
+  prefetchShort(fb?fb.href:trackingUrl);
 
   // B1 tab switch — updates price, per-unit, CTA, WA, waterfall
   window.switchUserTab=(type)=>{
@@ -1904,6 +1939,7 @@ function renderDetail(deal){
     document.getElementById('tab-eu')?.querySelector('small')&&wExisting&&(document.getElementById('tab-eu').querySelector('small').textContent='₹'+fmt(Math.round(wExisting.final)));
     const ib=document.getElementById('inline-cta-btn');if(ib){ib.href=newUrl;ib.textContent=newCtaText;}
     if(fb){fb.href=newUrl;fb.textContent=qty>1?`🛍 Shop Now · ${qty} units · ₹${fmt(newFinal)} total`:`🛍 Shop Now & Earn ${cbRawType==='percent'?cbV+'%':'₹'+cbV} ${cbWord}`;}
+    prefetchShort(fb?fb.href:newUrl);
     const newWaMsgText=qty>1
       ?`🔥 Get ${qty}x ${deal.product_name} for just ₹${fmt(newFinal)} (₹${fmt(newPerUnit)}/unit, MRP ₹${fmt(Math.round(mrpRounded/qty))} each) — ${w.discPct}% off + ${cbRawType==='percent'?cbV+'%':'₹'+cbV} CashKaro ${cbWord}. Grab it here: ${dealUrl}`
       :`🔥 Get ${deal.product_name} for just ₹${fmt(newFinal)} (MRP ₹${fmt(mrpRounded)}) — ${w.discPct}% off + ${cbRawType==='percent'?cbV+'%':'₹'+cbV} CashKaro ${cbWord}. Grab it here: ${dealUrl}`;
@@ -2146,7 +2182,7 @@ function renderSections(){
 
 
 <script>
-document.addEventListener("click", async function (e) {
+document.addEventListener("click", function (e) {
     const btn = e.target.closest(".whatsapp-btn");
     if (!btn) return;
     e.preventDefault();
@@ -2166,6 +2202,10 @@ document.addEventListener("click", async function (e) {
     // The tracked deal / claim link (credits the sender on purchase)
     const claimLink = document.getElementById("floating-cta-btn")?.href || "";
 
+    // Use the short link if the background prefetch has finished; otherwise the
+    // long link. Either way this stays synchronous so mobile opens WhatsApp.
+    const shortLink = (window.__shortCache && window.__shortCache[claimLink]) || claimLink;
+
     // Offer name WITHOUT the ×N quantity badge (badge is a later child node)
     const nameEl = document.querySelector(".detail-name");
     const offerName = (nameEl?.childNodes[0]?.textContent || "").trim();
@@ -2175,37 +2215,22 @@ document.addEventListener("click", async function (e) {
     const price   = document.getElementById("dp-final")?.textContent.trim() || ""; // final, after coupon + cashback
     const discPct = document.getElementById("dp-disc")?.textContent.trim() || "";  // e.g. "62% OFF"
 
-    // Shorten ONLY the deal link via is.gd. Cache per-URL on the button so repeat
-    // taps don't re-call; fall back to the full link on any failure.
-    let shortLink = claimLink;
-    if (claimLink) {
-        if (btn.dataset.shortFor === claimLink && btn.dataset.short) {
-            shortLink = btn.dataset.short;
-        } else {
-            try {
-                const r = await fetch("https://is.gd/create.php?format=simple&url=" + encodeURIComponent(claimLink));
-                if (r.ok) {
-                    const s = (await r.text()).trim();
-                    if (/^https?:\/\//i.test(s)) {
-                        shortLink = s;
-                        btn.dataset.short = s;
-                        btn.dataset.shortFor = claimLink;
-                    }
-                }
-            } catch (err) { /* keep the long link */ }
-        }
-    }
-
-    const message =
+    // Message template comes from Settings (Supabase). Fall back to built-in copy
+    // if it hasn't loaded. Placeholders: {product} {mrp} {price} {discount} {dealLink} {joinLink}
+    const DEFAULT_TPL =
 `Deal alert 👇
 
-${offerName}
-${mrp} → ${price}  (${discPct})
+{product}
+{mrp} → {price}  ({discount})
 Price shown includes CashKaro cashback.
 
-Deal link 👉 ${shortLink}
+Deal link 👉 {dealLink}
 
-Want cashback in your own account? You'll need to be on CashKaro — it's free and pays straight to your bank. Join 👉 ${joinLink}`;
+Want cashback in your own account? You'll need to be on CashKaro — it's free and pays straight to your bank. Join 👉 {joinLink}`;
+
+    const vals = { product: offerName, mrp: mrp, price: price, discount: discPct, dealLink: shortLink, joinLink: joinLink };
+    const tpl = (window.__waTemplate && window.__waTemplate.trim()) ? window.__waTemplate : DEFAULT_TPL;
+    const message = tpl.replace(/\{(\w+)\}/g, function (m, k) { return (k in vals) ? vals[k] : m; });
 
     window.location.href = "https://wa.me/?text=" + encodeURIComponent(message);
 });
