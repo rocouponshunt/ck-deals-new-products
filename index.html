@@ -637,7 +637,7 @@ html[data-wa-enabled="false"] .whatsapp-btn { display: none !important; }
   // browser context switches (mobile), localStorage does not.
   if (target) {
     try { localStorage.setItem(KEY, JSON.stringify({ t: target, ts: Date.now() })); } catch (e) {}
-    window.location.replace("https://cashkaro.com/page/sale-ck-deals-new?r="
+    window.location.replace("https://cashkaro.com/page/sale-ck-deals-page/?r="
       + encodeURIComponent(ref) + "&target=" + encodeURIComponent(target));
     return;
   }
@@ -2190,14 +2190,9 @@ document.addEventListener("click", function (e) {
     const params = new URLSearchParams(window.location.search);
     const userId = params.get("userId") || "";            // sender's userId (becomes ?r=)
 
-    // Current deal id from the hash (#deal/deal-123 -> deal-123), for the per-deal relay
-    const dealId = (location.hash.match(/deal\/(.+)$/) || [])[1] || "";
-
-    // Referral "Join" link -> points at the relay on THIS site so the recipient
-    // lands back on this exact deal after signing up. Left as a full link (not shortened).
-    const joinLink = "https://rocouponshunt.github.io/ck-deals-new-products/?r="
-        + encodeURIComponent(userId)
-        + (dealId ? "&target=" + encodeURIComponent(dealId) : "");
+    // Referral "Join" link -> original working CashKaro sale page. Lands the recipient
+    // on the main deals page after signup (simple + reliable on web and app).
+    const joinLink = "https://cashkaro.com/page/sale-ck-deals-page/?r=" + encodeURIComponent(userId);
 
     // The tracked deal / claim link (credits the sender on purchase)
     const claimLink = document.getElementById("floating-cta-btn")?.href || "";
