@@ -1659,9 +1659,9 @@ window.__shortCache = window.__shortCache || {};
 function prefetchShort(url){
   if(!url || window.__shortCache[url]) return;
   window.__shortCache[url] = url;                 // immediate fallback = the long link
-  fetch("https://is.gd/create.php?format=simple&url=" + encodeURIComponent(url))
-    .then(r => r.ok ? r.text() : null)
-    .then(t => { t=(t||'').trim(); if(/^https?:\/\//i.test(t)) window.__shortCache[url]=t; })
+  fetch("https://vvpzdsqrardzglhyqywv.supabase.co/functions/v1/shorten-url?url=" + encodeURIComponent(url), { cache:"no-store" })
+    .then(r => r.ok ? r.json() : null)
+    .then(d => { var s = d && d.short ? String(d.short).trim() : ""; if(/^https?:\/\//i.test(s)) window.__shortCache[url]=s; })
     .catch(()=>{});                                // keep the long link on any failure
 }
 function showDetail(dealId){
