@@ -274,6 +274,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:1
 #cat-strip{border-top:1px solid var(--border)}
 #cat-strip-inner{max-width:1400px;margin:0 auto;display:flex;gap:14px;overflow-x:auto;scrollbar-width:none;padding:12px 14px 8px}
 #cat-strip-inner::-webkit-scrollbar{display:none}
+#price-chip-strip{border-top:1px solid var(--border);background:#fff}
+#price-chip-inner{max-width:1400px;margin:0 auto;display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding:10px 14px}
+#price-chip-inner::-webkit-scrollbar{display:none}
+.price-chip{flex:0 0 auto;padding:8px 16px;border:1px solid var(--border);background:#fff;border-radius:999px;font-size:14px;font-weight:600;color:var(--text2);cursor:pointer;white-space:nowrap;transition:background .15s,color .15s,border-color .15s}
+.price-chip:hover{border-color:var(--accent)}
+.price-chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 #cat-strip .cat-pill{width:72px}
 #cat-strip .cat-ico{width:60px;height:60px;font-size:26px}
 #filter-bar{max-width:1400px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid var(--border)}
@@ -696,6 +702,7 @@ window.__waTemplate = "";     // empty → handler falls back to its built-in co
       </div>
     </div>
     <div id="cat-strip"><div id="cat-strip-inner"></div></div>
+    <div id="price-chip-strip"><div id="price-chip-inner"></div></div>
     <div id="filter-bar">
       <button class="fb-btn" id="open-sort"><span class="fb-ico">⇅</span> <span id="sort-btn-label">Sort</span></button>
       <button class="fb-btn" id="open-filter"><span class="fb-ico">⚙</span> Filter <span id="filter-count" class="fb-badge" style="display:none">0</span></button>
@@ -1288,6 +1295,43 @@ function catIcon(c){
 }
 function catLabel(c){ return CAT_SHORT[c]||c; }
 
+// ── Category slugs + price chips + listing routes ────────────────────
+const PRICE_CHIPS=[49,99,199,299,399];
+function catSlug(cat){
+  if(cat==='all'||!cat)return 'all';
+  return String(cat).toLowerCase().trim().replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+}
+function slugToCat(slug){
+  if(!slug||slug==='all')return 'all';
+  const cats=[...new Set(ALL_DEALS.map(d=>d.category).filter(Boolean))];
+  return cats.find(c=>catSlug(c)===slug)||'all';
+}
+function isChipPrice(){ return priceMin==null && priceMax!=null && PRICE_CHIPS.includes(priceMax); }
+function currentUnder(){ return isChipPrice()?priceMax:null; }
+function buildListingHash(cat,under){
+  let h='';
+  if(cat&&cat!=='all')h='category/'+catSlug(cat);
+  if(under)h=(h||'category/all')+'/under/'+under;
+  return h;
+}
+function goCategory(cat){ window.location.hash=buildListingHash(cat,currentUnder()); }
+function goUnder(n){ const u=(currentUnder()===n)?null:n; window.location.hash=buildListingHash(activeCat,u); }
+function renderPriceChips(){
+  const el=document.getElementById('price-chip-inner'); if(!el)return;
+  el.innerHTML='';
+  PRICE_CHIPS.forEach(n=>{
+    const b=document.createElement('button');
+    b.className='price-chip'; b.dataset.under=n; b.textContent='Under ₹'+n;
+    b.onclick=()=>goUnder(n);
+    el.appendChild(b);
+  });
+  syncPriceChips();
+}
+function syncPriceChips(){
+  const u=currentUnder();
+  document.querySelectorAll('#price-chip-inner .price-chip').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.under,10)===u));
+}
+
 function catTileInner(cat){
   const icoUrl=CAT_ICON_URL[cat];
   return icoUrl
@@ -1329,7 +1373,7 @@ function buildSidebar(){
   grid.appendChild(makeCatGridTile('all','✨','All'));
   orderedCats.forEach(cat=>grid.appendChild(makeCatGridTile(cat)));
   syncCatActive();
-  // Brand list (inside Filter sheet)
+  renderPriceChips();
   renderBrandList('');
   const bs=document.getElementById('brand-search');
   if(bs && !bs._wired){bs._wired=true;bs.addEventListener('input',function(){renderBrandList(this.value.trim().toLowerCase());});}
@@ -1400,11 +1444,7 @@ function clearFilters(){
   if(had)requestAnimationFrame(()=>renderDeals()); // only rebuild if something was actually set
 }
 function setCat(cat){
-  activeCat=cat;
-  syncCatActive();
-  populateBrandDropdown();
-  renderTrending();renderSections();   // Expiring Soon + retailer rows react to the selected category
-  renderDeals();
+  goCategory(cat);   // navigate via hash → handleHash applies state + renders
   closeSheets();
 }
 function populateBrandDropdown(){ renderBrandList((document.getElementById('brand-search')?.value||'').trim().toLowerCase()); }
@@ -1675,8 +1715,7 @@ function showDetail(dealId){
   const fc=document.getElementById('floating-cta');
   if(fc&&window.innerWidth<=900)fc.style.display='block';
 }
-function showListing(){
-  window.location.hash='';
+function showListingView(){
   allIntervals.forEach(item=>{
     if(typeof item === 'number') clearInterval(item);
     else if(item?._cleanup) item._cleanup();
@@ -1686,6 +1725,11 @@ function showListing(){
   document.getElementById('floating-cta').style.display='none';
   document.getElementById('detail-page').style.display='none';
   document.getElementById('listing-page').style.display='block';
+}
+function showListing(){
+  // Back to the listing — restore the current category/price context in the URL
+  showListingView();
+  window.location.hash=buildListingHash(activeCat,currentUnder());
 }
 
 function renderDetail(deal){
@@ -1972,8 +2016,23 @@ function switchTab(btn,tabId){
 let pendingDealId=null;
 function handleHash(){
   const hash=window.location.hash.slice(1);
-  if(hash.startsWith('deal/')){const id=hash.replace('deal/','');if(ALL_DEALS.length)showDetail(id);else pendingDealId=id;}
-  else showListing();
+  if(hash.startsWith('deal/')){const id=hash.replace('deal/','');if(ALL_DEALS.length)showDetail(id);else pendingDealId=id;return;}
+  applyListingRoute(hash);
+}
+function applyListingRoute(hash){
+  const parts=hash.split('/').filter(Boolean);   // e.g. ['category','fashion','under','99']
+  let cat='all', under=null;
+  if(parts[0]==='category'){ cat=slugToCat(parts[1]||'all'); if(parts[2]==='under')under=parseInt(parts[3],10)||null; }
+  else if(parts[0]==='under'){ under=parseInt(parts[1],10)||null; }
+  activeCat=cat;
+  if(under){ priceMax=under; priceMin=null; }         // chip sets an upper price
+  else if(isChipPrice()){ priceMax=null; }            // leaving a chip → clear it (keep custom sheet ranges)
+  showListingView();
+  syncCatActive(); syncPriceChips(); updateFilterBadge();
+  populateBrandDropdown();
+  renderTrending(); renderSections();                 // Expiring Soon + retailer rows react to category
+  renderDeals();
+  closeSheets();
 }
 window.addEventListener('hashchange',handleHash);
 
