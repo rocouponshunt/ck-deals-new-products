@@ -1432,7 +1432,7 @@ function applyFilters(){
   priceMin=isNaN(mn)?null:mn;priceMax=isNaN(mx)?null:mx;
   updateFilterBadge();
   closeSheets();                                  // close instantly (feels snappy)
-  requestAnimationFrame(()=>renderDeals());       // heavy grid rebuild after the sheet is gone
+  requestAnimationFrame(()=>{renderTrending();renderDeals();});       // heavy grid rebuild after the sheet is gone
 }
 function clearFilters(){
   const had=selectedBrands.size>0||priceMin||priceMax;
@@ -1441,7 +1441,7 @@ function clearFilters(){
   if(a)a.value='';if(b)b.value='';
   renderBrandList('');updateFilterBadge();
   closeSheets();
-  if(had)requestAnimationFrame(()=>renderDeals()); // only rebuild if something was actually set
+  if(had)requestAnimationFrame(()=>{renderTrending();renderDeals();}); // only rebuild if something was actually set
 }
 function setCat(cat){
   goCategory(cat);   // navigate via hash → handleHash applies state + renders
@@ -2041,6 +2041,9 @@ function renderTrending(){
   const el=document.getElementById('trending-scroll');
   const section=document.getElementById('trending-section');
   if(!el||!section)return;
+  // Price filters (chips or custom range) use different ordering and ignore price,
+  // so hide the whole Expiring Soon block to avoid a mismatched gap.
+  if(priceMin!=null || priceMax!=null){section.style.display='none';return;}
   // Manual deals lead, then most recently added (created_at); rows without a date sort last.
   const ts=d=>{const t=d.created_at?Date.parse(d.created_at):NaN;return isNaN(t)?-Infinity:t;};
   const isManual=d=>d.source==='manual'?1:0;
